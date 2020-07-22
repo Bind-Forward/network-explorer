@@ -12,6 +12,7 @@
     "csv-parse": "^4.11.1",
     "d3": "^5.16.0",
     "express": "^4.17.1",
+    "insert-css": "^2.0.0",
     "moment": "^2.27.0",
     "pg": "^8.3.0",
     "react": "^16.13.1",
@@ -22,7 +23,8 @@
     "start": "react-scripts start",
     "build": "react-scripts build && rm -rf build/data",
     "test": "react-scripts test",
-    "eject": "react-scripts eject"
+    "eject": "react-scripts eject",
+    "deploy": "aws s3 sync build/ s3://network-explorer-tweets --acl public-read"
   },
   "eslintConfig": {
     "extends": "react-app"

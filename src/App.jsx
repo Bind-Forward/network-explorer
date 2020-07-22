@@ -5,6 +5,7 @@ import Timeline, {brush, getRange} from './components/Timeline/Timeline';
 import FormBar from './components/Form/FormBar';
 import moment from 'moment';
 import * as d3 from 'd3';
+import insertCss from 'insert-css';
 
 import '@antv/graphin/dist/index.css'; 
 import '@antv/graphin-components/dist/index.css'; 
@@ -12,9 +13,35 @@ import '@antv/graphin-components/dist/index.css';
 import raw from "./data/tecnopolis3_tweets.json"
 import "./App.css"
 
-let filteredData = raw.slice(0, 100)
+let filteredData = raw.slice(0, 300)
 let degreeData = findDegree(raw)
 let graphData = transformDataToGraph(filteredData, degreeData)
+
+insertCss(`
+  .g6-tooltip {
+    border: 1px solid #e2e2e2;
+    border-radius: 4px;
+    font-size: 12px;
+    color: #545454;
+    background-color: rgba(255, 255, 255, 0.9);
+    padding: 10px 8px;
+    box-shadow: rgb(174, 174, 174) 0px 0px 10px;
+    max-width: 200px;
+  }
+`);
+
+const legendOptions = [
+  {
+    label: 'Parent Node',
+    value: 'parent',
+    color: 'navy',
+  },
+  {
+    label: 'Child Node',
+    value: 'child',
+    color: 'turquoise',
+  },
+];
 
 const App = () => {
  
@@ -23,19 +50,6 @@ const App = () => {
   const [selected, setSelected] = useState([]) // clicked node
   const [data, setData] = useState({sessions: [], graph:{nodes: [], edges:[]}}) // graph is re-rendered each time setData is executed
   const graphinRef = createRef(null);
-
-  const legendOptions = [
-    {
-      label: 'Parent Node',
-      value: 'parent',
-      color: 'navy',
-    },
-    {
-      label: 'Child Node',
-      value: 'child',
-      color: 'turquoise',
-    },
-  ];
 
   // helper function to reset graph to original state and style
   const clearAllStats = (graph) => {
@@ -53,53 +67,49 @@ const App = () => {
 
   };
 
-  //const zoom = (e, graph) => {
-    //console.log(e, graph)
-  //};
+  // highlight node that is being moused over and its connections, graying out the rest
+  const onMouseEnter = (e, graph) => {
+
+    const item = e.item;
+    graph.setAutoPaint(false);
+    graph.getNodes().forEach(function(node) {
+      graph.clearItemStates(node);
+      graph.setItemState(node, "highlight.dark", true);
+    });
+    graph.setItemState(item, "highlight.dark", false);
+    graph.setItemState(item, "highlight.light", true);
+
+    graph.getEdges().forEach(function(edge) {
+      if (edge.getSource() === item) {
+        graph.updateItem(edge, {style : {line: {color: 'navy'}}})
+        graph.setItemState(edge.getTarget(), "highlight.dark", false);
+        graph.setItemState(edge.getTarget(), "highlight.light", true);
+        graph.setItemState(edge, "highlight.light", true);
+        edge.toFront();
+      } else if (edge.getTarget() === item) {
+        graph.updateItem(edge, {style : {line: {color: 'navy'}}})
+        graph.setItemState(edge.getSource(), "highlight.dark", false);
+        graph.setItemState(edge.getSource(), "highlight.light", true);
+        graph.setItemState(edge, "highlight.light", true);
+        edge.toFront();
+      } else {
+        graph.updateItem(edge, {style : {line: {color: 'lightgray'}}})
+        graph.setItemState(edge, "highlight.light", false);
+      }
+    });
+    graph.paint();
+    graph.setAutoPaint(true);
+  }
 
   // modify graph element style by registering a click/mouseenter/mouseleave event
   useEffect(() => {
 
     const { graph } = graphinRef.current;
 
-    const onMouseEnter = e => {
-
-      const item = e.item;
-      graph.setAutoPaint(false);
-      graph.getNodes().forEach(function(node) {
-        graph.clearItemStates(node);
-        graph.setItemState(node, "highlight.dark", true);
-      });
-      graph.setItemState(item, "highlight.dark", false);
-      graph.setItemState(item, "highlight.light", true);
-
-      graph.getEdges().forEach(function(edge) {
-        if (edge.getSource() === item) {
-          graph.updateItem(edge, {style : {line: {color: 'navy'}}})
-          graph.setItemState(edge.getTarget(), "highlight.dark", false);
-          graph.setItemState(edge.getTarget(), "highlight.light", true);
-          graph.setItemState(edge, "highlight.light", true);
-          edge.toFront();
-        } else if (edge.getTarget() === item) {
-          graph.updateItem(edge, {style : {line: {color: 'navy'}}})
-          graph.setItemState(edge.getSource(), "highlight.dark", false);
-          graph.setItemState(edge.getSource(), "highlight.light", true);
-          graph.setItemState(edge, "highlight.light", true);
-          edge.toFront();
-        } else {
-          graph.updateItem(edge, {style : {line: {color: 'lightgray'}}})
-          graph.setItemState(edge, "highlight.light", false);
-        }
-      });
-      graph.paint();
-      graph.setAutoPaint(true);
-    }
-
-    graph.on("node:mouseenter", onMouseEnter);
+    graph.on("node:mouseenter", (e) => onMouseEnter(e, graph));
     graph.on("node:mouseleave", () => clearAllStats(graph));
     graph.on("canvas:click", () => clearAllStats(graph));
-    graph.on("node:click", (e) => setSelected(e.item._cfg.id));
-    //graph.on("wheelzoom", (e) => zoom(e, graph));
+    //graph.on("wheelzoom", () => console.log(graph.getZoom()));
 
   }, []);
 
@@ -137,7 +147,6 @@ const App = () => {
         graph.clearItemStates(edge);
         graph.updateItem(edge, {style : {line: {color: 'lightgray'}}})
         graph.setItemState(edge, "highlight.dark", true);
- 
       });
 
       edgeIds.forEach(function(edge) {
@@ -309,15 +318,38 @@ const App = () => {
                 single: 100,
                 center: (node, degree) => {
                   return {
-                    x: 100,
-                    y: 100,
+                    x: window.innerWidth,
+                    y: window.innerHeight,
                   };
                 },
               },
             },
           }}
-          options={{   
+          options={{
+            zoom: 0.4, 
+            pan: {
+              x: 200,
+              y: 100,
+            },
             autoPolyEdge: true,
+            modes: {
+              default: [
+                // {
+                //   type: 'tooltip',
+                //   formatText(model) {
+                //     const text = model.data.description;
+                //     return text;
+                //   },
+                // },
+                {
+                  type: 'edge-tooltip',
+                  formatText(model) {
+                    const text = `<b>${model.data.content.title}</b><p>${model.data.content.description}</p>`
+                    return text;
+                  },
+                },
+              ],
+            },
           }}
           ref={graphinRef}
         >
@@ -357,7 +389,7 @@ function transformDataToGraph(sessions, degreeData) {
       id : d.original_user_id + '-' + d.user_id + '-' + i,
       source : d.original_user_id.toString(),
       target : d.user_id.toString(),
-      data : {index: d.id, date: getTime(d.created_at)},
+      data : {index: d.id, date: getTime(d.created_at), content: {title: d.created_at, description: d.full_text}},
       style : {line: {color: 'navy'}}
       //label: d.created_at
     })

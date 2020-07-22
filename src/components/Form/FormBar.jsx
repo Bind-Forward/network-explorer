@@ -7,15 +7,6 @@ import './Form.css';
 const { RangePicker } = DatePicker;
 const { Option } = Select;
 
-const layout = {
-  labelCol: {
-    span: 8,
-  },
-  wrapperCol: {
-    span: 16,
-  },
-};
-
 const FormBar = (props) => {
 
   const [formbar] = Form.useForm();
@@ -37,7 +28,7 @@ const FormBar = (props) => {
 
   return (
     <div id="form-bar">
-      <Form {...layout} form={formbar} layout='inline'>
+      <Form form={formbar} layout='inline'>
         <Form.Item label="Device">
           <Input defaultValue='First 300 tweets...' placeholder="Search for a device" onPressEnter={(e) => {
             setForm({...form, device: e.target.value})
