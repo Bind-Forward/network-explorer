@@ -1,11 +1,11 @@
 import React, {useState, useEffect, createRef} from 'react';
 import Graphin, { Utils } from '@antv/graphin';
 import { Toolbar, Legend } from '@antv/graphin-components';
-import Timeline, {brush, getRange} from './components/Timeline/Timeline';
+import Timeline, {brush} from './components/Timeline/Timeline';
 import FormBar from './components/Form/FormBar';
-import moment from 'moment';
 import * as d3 from 'd3';
 import insertCss from 'insert-css';
+import {getTime, getRange, onlyUnique, findDegree} from './components/Shared/utils'
 
 import '@antv/graphin/dist/index.css'; 
 import '@antv/graphin-components/dist/index.css'; 
@@ -14,8 +14,13 @@ import raw from "./data/tecnopolis3_tweets.json"
 import "./App.css"
 
 let filteredData = raw.slice(0, 300)
+filteredData.forEach(d=>{
+  d.source = d.original_user_id
+  d.target = d.user_id
+})
 let degreeData = findDegree(raw)
-let graphData = transformDataToGraph(filteredData, degreeData)
+let tooltipAttrs = {TITLE: 'created_at', DESCRIPTION: 'full_text'}
+let graphData = transformDataToGraph(filteredData, degreeData, tooltipAttrs)
 
 insertCss(`
   .g6-tooltip {
@@ -203,16 +208,16 @@ const App = () => {
       //console.log(newData)
       // use filtered results to find connections for the next hop step
       let nodeIds = []
-      let n1s = newData.map(d=>parseInt(d.user_id))
-      let n1t = newData.map(d=>parseInt(d.original_user_id))
+      let n1s = newData.map(d=>parseInt(d.source))
+      let n1t = newData.map(d=>parseInt(d.target))
       nodeIds.push(n1s)
       nodeIds.push(n1t)
       nodeIds.push(parseInt(device))
       if(degree > 1){
         newData = filterByDevices(nodeIds.flat(), raw, dates) // render edges 2 hop away from searched node
         //console.log(newData)
-        let n2s = newData.map(d=>parseInt(d.user_id))
-        let n2t = newData.map(d=>parseInt(d.original_user_id))
+        let n2s = newData.map(d=>parseInt(d.source))
+        let n2t = newData.map(d=>parseInt(d.target))
         nodeIds.push(n2s)
         nodeIds.push(n2t)
         if(degree > 2){
@@ -225,7 +230,7 @@ const App = () => {
     } else {
       newData = filteredData
     }
-    let graphData = transformDataToGraph(newData, degreeData)
+    let graphData = transformDataToGraph(newData, degreeData, tooltipAttrs)
     setData({sessions: newData, graph: graphData})
 
   }, [filters]);
@@ -236,7 +241,7 @@ const App = () => {
   }
 
   function filterByDevices(devices, data, dates) {
-    let newData = data.filter(d=>devices.indexOf(d.user_id) !== -1 | devices.indexOf(d.original_user_id) !== -1)
+    let newData = data.filter(d=>devices.indexOf(d.source) !== -1 | devices.indexOf(d.target) !== -1)
     if(dates.length > 0){
       newData = filterByDate(dates, newData)
     }  
@@ -361,15 +366,11 @@ const App = () => {
   );
 };
 
-function onlyUnique(value, index, self) {
-  return self.indexOf(value) === index
-}
-
-function transformDataToGraph(sessions, degreeData) {
+function transformDataToGraph(sessions, degreeData, tooltip_attrs) {
 
   let nodes = []
-  let ids_1 = sessions.map(d=>d.user_id)
-  let ids_2 = sessions.map(d=>d.original_user_id)
+  let ids_1 = sessions.map(d=>d.source)
+  let ids_2 = sessions.map(d=>d.target)
   let nodeIDs = ids_1.concat(ids_2).filter(onlyUnique)
   nodeIDs.map((d,i) => {
     if(d){
@@ -386,61 +387,16 @@ function transformDataToGraph(sessions, degreeData) {
   let edges = []
   sessions.map((d,i) => {
     edges.push({
-      id : d.original_user_id + '-' + d.user_id + '-' + i,
-      source : d.original_user_id.toString(),
-      target : d.user_id.toString(),
-      data : {index: d.id, date: getTime(d.created_at), content: {title: d.created_at, description: d.full_text}},
+      id : d.source + '-' + d.target + '-' + i,
+      source : d.source.toString(),
+      target : d.target.toString(),
+      data : {index: d.id, date: getTime(d.created_at), content: {title: d[tooltip_attrs.TITLE], description: d[tooltip_attrs.DESCRIPTION]}},
       style : {line: {color: 'navy'}}
-      //label: d.created_at
     })
   })
 
   return { nodes, edges }
 
-}
-
-function getTime(datetime) {
-  return moment(datetime).format("MMM DD hha")
-}
-
-function findDegree(links) {
-
-  const linksTarget_nested = d3.nest()
-    .key(function (d) {
-      return d.original_user_id
-    })
-    .rollup(function (leaves) {
-      return leaves.length
-    })
-    .entries(links)
-
-  const linksSource_nested = d3.nest()
-    .key(function (d) {
-      return d.user_id
-    })
-    .rollup(function (leaves) {
-      return leaves.length
-    })
-    .entries(links)
-
-  const linksNested = []
-  linksTarget_nested.forEach(function (d, i) {
-    linksNested.push({ key: d.key, value: d.value })
-  })
-  linksSource_nested.forEach(function (d, i) {
-    linksNested.push({ key: d.key, value: d.value })
-  })
-
-  const linkAllNodes = d3.nest()
-    .key(function (d) {
-      return d.key
-    })
-    .rollup(function (leaves) {
-      return d3.sum(leaves, (d) => d.value)
-    })
-    .entries(linksNested)
-
-  return linkAllNodes
 }
 
 export default App;

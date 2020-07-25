@@ -1,6 +1,7 @@
 import React, { useRef, useEffect } from 'react';
 import * as d3 from 'd3';
 import moment from 'moment';
+import {getTime, getRange} from '../Shared/utils'
 
 //let systemOffset = new Date().getTimezoneOffset()/60 // detects the system timezone of client
 let systemOffset = 0
@@ -27,13 +28,7 @@ const Timeline = (props) => {
             .range([height, 0]);
      
   brush.extent([[0, 0], [width, height]])
-
-  const scaleTime = d3.scaleTime().domain([new Date(2020, 1, 28, 0), new Date(2020, 2, 2, 23)])
-  const hours = scaleTime.ticks(d3.timeHour.every(1))
-  const hours_formatted = hours.map(function(d) {
-    return moment(d).format("MMM DD hha")
-  })
-
+  
   useEffect(() => {
 
     let svg = d3.select(inputEl.current).append("svg")
@@ -106,8 +101,15 @@ const Timeline = (props) => {
   function update_timeline(data) {
 
     data.forEach(function(d) {
-      d.date = moment(d.created_at).format("MMM DD hha")
+      d.date = getTime(d.created_at)
+      d.epoch = moment(d.created_at).toDate()
     })
+
+    let MAX = d3.max(data, d=>d.epoch)
+    let MIN = moment(MAX).subtract(3, "days")
+    const scaleTime =d3.scaleTime().domain([MIN, MAX])
+    const hours = scaleTime.ticks(d3.timeHour.every(1))
+    const hours_formatted = hours.map(d => getTime(d))
 
     let dataSum = d3.nest()
       .key(d=>d.date)
@@ -123,16 +125,15 @@ const Timeline = (props) => {
       })
     })
 
-    timelineData.forEach(d => {
-      let epoch = d.date.setHours(d.date.getHours() + systemOffset + hoursOffset) // adjusts UTC timezone to desired timezone, taking into account the system timezone
-      d.date = moment(epoch).toDate()
-    })
+    // timelineData.forEach(d => {
+    //   let epoch = d.date.setHours(d.date.getHours() + systemOffset + hoursOffset) // adjusts UTC timezone to desired timezone, taking into account the system timezone
+    //   d.date = moment(epoch).toDate()
+    // })
 
     // Scale the range of the data in the domains
     let datetimes = timelineData.map(function(d) { return d.date })
     x.domain(d3.extent(timelineData, d=>d.date));
-    //y.domain([0, d3.max(timelineData, function(d) { return d.value })]);
-    y.domain([0, 80]);
+    y.domain([0, d3.max(timelineData, function(d) { return d.value })]);
 
     // append the rectangles for the bar chart
     let svg = d3.select(inputEl.current).select(".timeline")
@@ -178,18 +179,5 @@ const Timeline = (props) => {
     </div>
   );
 };
-
-export function getRange(startDate, endDate, type) {
-   
-  let fromDate = moment(startDate)
-  let toDate = moment(endDate)
-  let diff = toDate.diff(fromDate, type)
-  let range = []
-  for (let i = 0; i < diff; i++) {
-    range.push(moment(startDate).add(i-hoursOffset, type)) // based on desired timezone, subtract the hours that are ahead of the UTC timezone.
-  }
-  range = range.map(d=>moment(d).format("MMM DD hha"))
-  return range
-}
 
 export default Timeline;
