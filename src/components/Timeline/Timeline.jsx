@@ -1,7 +1,8 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useContext } from 'react';
 import * as d3 from 'd3';
 import moment from 'moment';
 import {getTime, getRange} from '../Shared/utils'
+import { ModalContext } from "../contexts/ModalContext"
 
 //let systemOffset = new Date().getTimezoneOffset()/60 // detects the system timezone of client
 let systemOffset = 0
@@ -11,7 +12,9 @@ export const brush = d3.brushX()
 
 const Timeline = (props) => {
 
+  const { modalState } = useContext(ModalContext)
   const { data, findElementsToHighlight} = props
+  let { DATE } = modalState
 
   const inputEl = useRef(null);
 
@@ -45,7 +48,7 @@ const Timeline = (props) => {
               "translate(" + (width/2) + " ," + 
                              (height + margin.top + 20) + ")")
         .style("text-anchor", "middle")
-        .text("Retweet Date (in GMT +0)");
+        .text("Date");
 
     // text label for the y axis
     svg.append("text")
@@ -54,11 +57,11 @@ const Timeline = (props) => {
         .attr("x",0 - (height / 2))
         .attr("dy", "1em")
         .style("text-anchor", "middle")
-        .text("Number of retweets");      
+        .text("Total Edges");      
 
     svg.append("g")
         .attr("class", "brush")
-        .call(brush.on("end", brushended));
+        //.call(brush.on("end", brushended));
 
     // add the x Axis
     svg.append("g")
@@ -68,7 +71,7 @@ const Timeline = (props) => {
     // add the y Axis
     svg.append("g")
         .attr('class', 'y-axis')
-
+    
   }, [])
 
   useEffect(() => {
@@ -101,11 +104,12 @@ const Timeline = (props) => {
   function update_timeline(data) {
 
     data.forEach(function(d) {
-      d.date = getTime(d.created_at)
-      d.epoch = moment(d.created_at).toDate()
+      d.date = getTime(d[DATE])
+      d.epoch = moment(d[DATE]).toDate()
     })
 
     let MAX = d3.max(data, d=>d.epoch)
+    MAX = moment(MAX).add(1, "hours")
     let MIN = moment(MAX).subtract(3, "days")
     const scaleTime =d3.scaleTime().domain([MIN, MAX])
     const hours = scaleTime.ticks(d3.timeHour.every(1))
@@ -171,7 +175,9 @@ const Timeline = (props) => {
       .call(d3.axisLeft(y)
         .ticks(5)
       );
-
+   
+    d3.select('.brush')
+      .call(brush.on("end", brushended));
   }
 
   return (

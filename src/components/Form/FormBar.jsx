@@ -1,5 +1,6 @@
 import React, {useState, useEffect} from 'react';
 import { Form, Input, DatePicker, Select } from 'antd';
+import FormModal from './FormModal';
 
 import 'antd/dist/antd.css';
 import './Form.css';
@@ -29,6 +30,7 @@ const FormBar = (props) => {
   return (
     <div id="form-bar">
       <Form form={formbar} layout='inline'>
+        <FormModal/>
         <Form.Item label="Device">
           <Input defaultValue='First 300 tweets...' placeholder="Search for a device" onPressEnter={(e) => {
             setForm({...form, device: e.target.value})

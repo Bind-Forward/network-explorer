@@ -3,9 +3,12 @@ import ReactDOM from 'react-dom';
 import './index.css';
 import App from './App';
 import * as serviceWorker from './serviceWorker';
+import { ModalProvider } from "./components/contexts/ModalContext"
 
 ReactDOM.render(
-  <App />,
+  <ModalProvider>
+    <App />
+  </ModalProvider>,
   document.getElementById('root')
 );
 

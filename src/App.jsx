@@ -1,26 +1,18 @@
-import React, {useState, useEffect, createRef} from 'react';
+import React, {useState, useEffect, createRef, useContext} from 'react';
 import Graphin, { Utils } from '@antv/graphin';
 import { Toolbar, Legend } from '@antv/graphin-components';
 import Timeline, {brush} from './components/Timeline/Timeline';
 import FormBar from './components/Form/FormBar';
 import * as d3 from 'd3';
 import insertCss from 'insert-css';
-import {getTime, getRange, onlyUnique, findDegree} from './components/Shared/utils'
+import {getTime, getRandomInt, getRange, onlyUnique, findDegree} from './components/Shared/utils'
+import { ModalContext } from "./components/contexts/ModalContext"
 
 import '@antv/graphin/dist/index.css'; 
 import '@antv/graphin-components/dist/index.css'; 
 
-import raw from "./data/tecnopolis3_tweets.json"
+//import raw from "./data/tecnopolis3_tweets.json"
 import "./App.css"
-
-let filteredData = raw.slice(0, 300)
-filteredData.forEach(d=>{
-  d.source = d.original_user_id
-  d.target = d.user_id
-})
-let degreeData = findDegree(raw)
-let tooltipAttrs = {TITLE: 'created_at', DESCRIPTION: 'full_text'}
-let graphData = transformDataToGraph(filteredData, degreeData, tooltipAttrs)
 
 insertCss(`
   .g6-tooltip {
@@ -32,6 +24,7 @@ insertCss(`
     padding: 10px 8px;
     box-shadow: rgb(174, 174, 174) 0px 0px 10px;
     max-width: 200px;
+    text-align: left;
   }
 `);
 
@@ -48,23 +41,35 @@ const legendOptions = [
   },
 ];
 
-const App = () => {
- 
+const App = () => { 
+  
+  const { modalState } = useContext(ModalContext)
   const [filters, setFilters] = useState({device: "All", dates: [], degree: 1}) // form values
   const [highlight, setHighlight] = useState({brushedDates: []}) // dates selected upon brushing
   const [selected, setSelected] = useState([]) // clicked node
-  const [data, setData] = useState({sessions: [], graph:{nodes: [], edges:[]}}) // graph is re-rendered each time setData is executed
+  const [data, setData] = useState({
+    sessions: [], 
+    graph:{nodes: [], edges:[]}, 
+    degreeData: [], 
+    accessors: {widthAccessor: () => 1, strokeAccessor: () => 'grey'}
+  }) // graph is re-rendered each time setData is executed
   const graphinRef = createRef(null);
 
-  // helper function to reset graph to original state and style
-  const clearAllStats = (graph) => {
+  let { raw, SOURCE, TARGET, EDGE_COLOR, EDGE_WIDTH, TOOLTIP_TITLE, TOOLTIP_DESCRIPTION } = modalState
+  const { sessions, graph, degreeData, accessors } = data
+  const {widthAccessor, strokeAccessor} = accessors
 
+  // helper function to reset graph to original state and style
+  const clearAllStats = (graph, accessors) => {
+
+    const {widthAccessor, strokeAccessor} = accessors
     graph.setAutoPaint(false);
     graph.getNodes().forEach(function(node) {
       graph.clearItemStates(node);
     });
     graph.getEdges().forEach(function(edge) {
-      graph.updateItem(edge, {style : {line: {color: 'navy'}}})
+      let D = edge._cfg.model.data
+      graph.updateItem(edge, {style : {line: { color: strokeAccessor(D), width: widthAccessor(D) }}})
       graph.clearItemStates(edge);
     });
     graph.paint();
@@ -73,9 +78,11 @@ const App = () => {
   };
 
   // highlight node that is being moused over and its connections, graying out the rest
-  const onMouseEnter = (e, graph) => {
+  const onMouseEnter = (e, graph, accessors) => {
 
+    const {widthAccessor, strokeAccessor} = accessors
     const item = e.item;
+
     graph.setAutoPaint(false);
     graph.getNodes().forEach(function(node) {
       graph.clearItemStates(node);
@@ -85,14 +92,14 @@ const App = () => {
     graph.setItemState(item, "highlight.light", true);
 
     graph.getEdges().forEach(function(edge) {
+      let D = edge._cfg.model.data
+      graph.updateItem(edge, {style : {line: { color: strokeAccessor(D), width: widthAccessor(D) }}})
       if (edge.getSource() === item) {
-        graph.updateItem(edge, {style : {line: {color: 'navy'}}})
         graph.setItemState(edge.getTarget(), "highlight.dark", false);
         graph.setItemState(edge.getTarget(), "highlight.light", true);
         graph.setItemState(edge, "highlight.light", true);
         edge.toFront();
       } else if (edge.getTarget() === item) {
-        graph.updateItem(edge, {style : {line: {color: 'navy'}}})
         graph.setItemState(edge.getSource(), "highlight.dark", false);
         graph.setItemState(edge.getSource(), "highlight.light", true);
         graph.setItemState(edge, "highlight.light", true);
@@ -106,22 +113,63 @@ const App = () => {
     graph.setAutoPaint(true);
   }
 
-  // modify graph element style by registering a click/mouseenter/mouseleave event
+  // render graph when form is submitted
   useEffect(() => {
 
+    raw.forEach(d=>{
+      d.source = d[SOURCE]
+      d.target = d[TARGET]
+    })
+
+    let widthAccessor, strokeAccessor 
+    if(EDGE_WIDTH !== ""){
+      let widthScale = d3.scaleLinear()
+        .domain([0, d3.max(raw, d=>+d[EDGE_WIDTH])])
+        .range([1, 10])
+
+      widthAccessor = (d) => widthScale(+d[EDGE_WIDTH])
+
+    } else {
+      widthAccessor = (d) => 1
+    }
+
+    if(EDGE_COLOR !== ""){
+      let strokeScale = d3.scaleLinear()
+        .domain([0, d3.max(raw, d=>+d[EDGE_COLOR])])
+        .range(["WhiteSmoke", "black"])
+
+      strokeAccessor = (d) => strokeScale(+d[EDGE_COLOR])
+    } else {
+      strokeAccessor = (d) => 'grey'
+    }
+
+    if(TOOLTIP_TITLE !== ""){
+      TOOLTIP_TITLE = "id"
+    }
+
+    let accessors = {widthAccessor, strokeAccessor}
+    let degreeData = findDegree(raw)
+    let graphData = transformDataToGraph(raw, degreeData, accessors)
+
+    setData({sessions: raw, graph: graphData, degreeData, accessors})
+
+    // modify graph element style by registering a click/mouseenter/mouseleave event
     const { graph } = graphinRef.current;
 
-    graph.on("node:mouseenter", (e) => onMouseEnter(e, graph));
-    graph.on("node:mouseleave", () => clearAllStats(graph));
-    graph.on("canvas:click", () => clearAllStats(graph));
+    graph.on("node:mouseenter", (e) => onMouseEnter(e, graph, accessors));
+    graph.on("node:mouseleave", () => clearAllStats(graph, accessors));
+    graph.on("canvas:click", () => clearAllStats(graph, accessors));
     //graph.on("wheelzoom", () => console.log(graph.getZoom()));
 
-  }, []);
+  }, [raw]);
 
   // modify graph element style through timeline bar chart brushing event
   useEffect(() => {
 
     const { graph } = graphinRef.current;
+
+    graph.on("node:mouseenter", () => {}); // disable node mouseover when brushing is in effect
+    graph.on("node:mouseleave", () => {});
 
     const { nodes, edges } = data.graph // current graph state (taking into account filters, if any)
     let dataNodes = nodes
@@ -156,7 +204,8 @@ const App = () => {
 
       edgeIds.forEach(function(edge) {
         graph.clearItemStates(edge);
-        graph.updateItem(edge, {style : {line: {color: 'navy'}}})
+        let D = dataEdges.find(d=>d.id === edge).data
+        graph.updateItem(edge, {style : {line: { color: strokeAccessor(D), width: widthAccessor(D) }}})
         graph.setItemState(edge, "highlight.light", true);
       });
 
@@ -173,7 +222,7 @@ const App = () => {
     const { graph } = graphinRef.current;
 
     let newData = filterByDevices([parseInt(selected)], raw, filters.dates) 
-    let expandData = transformDataToGraph(newData, degreeData)
+    let expandData = transformDataToGraph(newData, degreeData, accessors)
 
     // remove nodes and edges that already exist on graph
     let existingNodeIds = graph.getNodes().map(d=>d._cfg.id)
@@ -226,12 +275,12 @@ const App = () => {
         }
       }
     } else if(dates.length > 0){
-      newData = filterByDate(dates, filteredData) // no concept of 'hops' if no node ID is searched for
+      newData = filterByDate(dates, sessions) // no concept of 'hops' if no node ID is searched for
     } else {
-      newData = filteredData
+      newData = sessions
     }
-    let graphData = transformDataToGraph(newData, degreeData, tooltipAttrs)
-    setData({sessions: newData, graph: graphData})
+    let graphData = transformDataToGraph(newData, degreeData, accessors)
+    setData({...data, sessions: newData, graph: graphData})
 
   }, [filters]);
 
@@ -276,8 +325,6 @@ const App = () => {
     toolbarCfgNew[3].action = () => {
 
       const { graph } = graphinRef.current;
-      //clearAllStats(graph)
-      //setData({sessions: filteredData, graph: graphData})
       setFilters({device: "All", dates: [], degree: 1})
       d3.selectAll('.brush').call(brush.move, null);
 
@@ -305,6 +352,55 @@ const App = () => {
     const nodeIds = filterNodes.map(c => c.id);
 
     apis.highlight(nodeIds);
+
+  }
+
+  function transformDataToGraph(sessions, degreeData, accessors) {
+
+    const {widthAccessor, strokeAccessor} = accessors
+
+    let nodes = []
+    let ids_1 = sessions.map(d=>d.source)
+    let ids_2 = sessions.map(d=>d.target)
+    let nodeIDs = ids_1.concat(ids_2).filter(onlyUnique)
+    nodeIDs.map((d,i) => {
+      if(d){
+        let degree = degreeData.find(el=>el.key === d.toString()).value
+        nodes.push({
+          id : d.toString(),
+          label: d, 
+          data: {
+            id: d, 
+            type: degree === 1 ? 'child' : 'parent'
+          },
+          style : {nodeSize: 2, icon: 'user', primaryColor: degree === 1 ? 'turquoise' : 'navy'},
+        })
+      }
+    })
+    
+    let edges = []
+    sessions.map((d,i) => {
+      edges.push({
+        id : d.source + '-' + d.target + '-' + i,
+        source : d.source.toString(),
+        target : d.target.toString(),
+        data : {
+          index: d.id, 
+          date: getTime(d.created_at), 
+          distance: d.distance, 
+          duration: d.duration,
+          content: {
+            title: d[TOOLTIP_TITLE], 
+            description: d[TOOLTIP_DESCRIPTION],
+            edgeColor: {label: EDGE_COLOR, value: d[EDGE_COLOR]},
+            edgeWidth: {label: EDGE_WIDTH, value: d[EDGE_WIDTH]}
+          }
+        },
+        style : {line: {width: widthAccessor(d), color: strokeAccessor(d)}}
+      })
+    })
+
+    return { nodes, edges }
 
   }
 
@@ -349,54 +445,34 @@ const App = () => {
                 {
                   type: 'edge-tooltip',
                   formatText(model) {
-                    const text = `<b>${model.data.content.title}</b><p>${model.data.content.description}</p>`
+                    let content = model.data.content
+                    let text = `<h3>${content.title}</h3>`
+                    if(content.edgeColor.label !== ""){
+                      text += `<p><span class='label'>${content.edgeColor.label}: </span>${content.edgeColor.value}</p>`
+                      console.log('hi', text)
+                    }
+                    if(content.edgeWidth.label !== ""){
+                      text += `<p><span class='label'>${content.edgeWidth.label}: </span>${content.edgeWidth.value}</p>`
+                    }   
+                    if(TOOLTIP_DESCRIPTION !== ""){
+                      text += `<p>${content.description}</p>`
+                    }   
                     return text;
-                  },
+                  }
                 },
               ],
             },
           }}
           ref={graphinRef}
         >
-        <Toolbar render={renderToolbar}/>
-        <Legend options={legendOptions} onChange={handleLegend} />
+        { raw.length > 0 && <Toolbar render={renderToolbar}/> }
+        { raw.length > 0 && <Legend options={legendOptions} onChange={handleLegend} /> }
       </Graphin>
-      <Timeline data={data.sessions} findElementsToHighlight={findElementsToHighlight}/>
+      { raw.length > 0 && <Timeline data={data.sessions} findElementsToHighlight={findElementsToHighlight}/> }
     </div>
   );
+
 };
 
-function transformDataToGraph(sessions, degreeData, tooltip_attrs) {
-
-  let nodes = []
-  let ids_1 = sessions.map(d=>d.source)
-  let ids_2 = sessions.map(d=>d.target)
-  let nodeIDs = ids_1.concat(ids_2).filter(onlyUnique)
-  nodeIDs.map((d,i) => {
-    if(d){
-      let degree = degreeData.find(el=>el.key === d.toString()).value
-      nodes.push({
-        id : d.toString(),
-        label: d, 
-        data: {id: d, type: degree === 1 ? 'child' : 'parent'},
-        style : {nodeSize: 2, icon: 'user', primaryColor: degree === 1 ? 'turquoise' : 'navy'},
-      })
-    }
-  })
-
-  let edges = []
-  sessions.map((d,i) => {
-    edges.push({
-      id : d.source + '-' + d.target + '-' + i,
-      source : d.source.toString(),
-      target : d.target.toString(),
-      data : {index: d.id, date: getTime(d.created_at), content: {title: d[tooltip_attrs.TITLE], description: d[tooltip_attrs.DESCRIPTION]}},
-      style : {line: {color: 'navy'}}
-    })
-  })
-
-  return { nodes, edges }
-
-}
 
 export default App;
