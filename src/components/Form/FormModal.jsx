@@ -1,8 +1,10 @@
 import React, { useState, useContext } from 'react';
-import { Button, Modal, Form, Input, Typography } from 'antd';
+import { Button, Modal, Form, Input, Typography, Tooltip } from 'antd';
+import { InfoCircleOutlined } from '@ant-design/icons';
 import FileUpload from './FileUpload';
 import { ModalContext } from "../contexts/ModalContext"
 import test from "../../data/test.json"
+import test1 from "../../data/sample.json"
 
 const { Text } = Typography;
 
@@ -45,11 +47,11 @@ const FormModal = (props) => {
     })
   }
 
-  const onFill = () => {
+  const onFill_1 = () => {
     formRef.current.setFieldsValue({
       SOURCE: 'original_user_id',
       TARGET: 'user_id',
-      DATE: 'created_at',
+      DATE: 'epoch',
       EDGE_WIDTH: 'duration',
       EDGE_COLOR: 'distance',
       TOOLTIP_TITLE: 'created_at',
@@ -59,6 +61,18 @@ const FormModal = (props) => {
       d.index = i
     })
     updateData(test)
+  };
+
+  const onFill_2 = () => {
+    formRef.current.setFieldsValue({
+      SOURCE: 'source',
+      TARGET: 'target',
+      EDGE_WIDTH: 'value'
+    });
+    test1.forEach((d,i)=>{
+      d.index = i
+    })
+    updateData(test1)
   };
 
   return (
@@ -90,8 +104,11 @@ const FormModal = (props) => {
             label="Choose a CSV/JSON file"
           >
             <FileUpload updateData={updateData}/>
-            <Button type="link" htmlType="button" onClick={onFill}>
-              Load sample & Fill form
+            <Button type="link" htmlType="button" onClick={onFill_1}>
+              Load sample1 (temporal) & Fill form
+            </Button>
+            <Button type="link" htmlType="button" onClick={onFill_2}>
+              Load sample2 (non-temporal) & Fill form
             </Button>
           </Form.Item>  
           <Form.Item>
@@ -114,16 +131,28 @@ const FormModal = (props) => {
             <Input type="textarea" />
           </Form.Item>
           <Form.Item name="DATE" label="Date">
-            <Input type="textarea" />
+            <Input type="textarea" suffix={
+              <Tooltip title="Dates have to be in UNIX timestamps">
+                <InfoCircleOutlined style={{ color: 'rgba(0,0,0,.45)' }} />
+              </Tooltip>
+            }/>
           </Form.Item>
           <Form.Item>
             <Text strong underline>Styles</Text>
           </Form.Item>
           <Form.Item name="EDGE_WIDTH" label="Edge Width">
-            <Input type="textarea" />
+            <Input type="textarea" suffix={
+              <Tooltip title="Only continuous values">
+                <InfoCircleOutlined style={{ color: 'rgba(0,0,0,.45)' }} />
+              </Tooltip>
+            }/>
           </Form.Item>
           <Form.Item name="EDGE_COLOR" label="Edge Color">
-            <Input type="textarea" />
+            <Input type="textarea" suffix={
+              <Tooltip title="Only continuous values">
+                <InfoCircleOutlined style={{ color: 'rgba(0,0,0,.45)' }} />
+              </Tooltip>
+            }/>
           </Form.Item>
           <Form.Item>
             <Text strong underline>Tooltip Content</Text>

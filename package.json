@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "dependencies": {
+    "@ant-design/icons": "^4.2.1",
     "@antv/graphin": "^1.4.2",
     "@antv/graphin-components": "^1.4.1",
     "@testing-library/jest-dom": "^4.2.4",
@@ -24,7 +25,7 @@
     "build": "react-scripts build && rm -rf build/data",
     "test": "react-scripts test",
     "eject": "react-scripts eject",
-    "deploy": "aws s3 sync build/ s3://network-explorer-tweets --acl public-read"
+    "deploy": "aws s3 sync build/ s3://network-explorer --acl public-read"
   },
   "eslintConfig": {
     "extends": "react-app"

@@ -1,5 +1,6 @@
 import React from 'react';
 import { Button, message, Upload } from 'antd';
+import { UploadOutlined } from '@ant-design/icons';
 
 function csvJSON(csv){
 
@@ -34,7 +35,7 @@ const dummyRequest = ({ file, onSuccess }) => {
     onSuccess("ok");
   }, 0);
 };
-  
+
 const FileUpload = (props) => {
 
   const { updateData } = props

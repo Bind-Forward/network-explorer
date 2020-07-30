@@ -118,12 +118,15 @@ const App = () => {
   useEffect(() => {
 
     raw.forEach(d=>{
-      d.source = d[SOURCE]
-      d.target = d[TARGET]
+      d.source = d[SOURCE].toString()
+      d.target = d[TARGET].toString()
     })
 
     let widthAccessor, strokeAccessor 
-    if(EDGE_WIDTH){
+    let edge_width_DataArr = raw.map(d=>d[EDGE_WIDTH])
+    let edge_color_DataArr = raw.map(d=>d[EDGE_COLOR])
+
+    if(EDGE_WIDTH && !edge_width_DataArr.some(isNaN)){
       let widthScale = d3.scaleLinear()
         .domain([0, d3.max(raw, d=>+d[EDGE_WIDTH])])
         .range([1, 10])
@@ -134,7 +137,7 @@ const App = () => {
       widthAccessor = (d) => 1
     }
 
-    if(EDGE_COLOR){
+    if(EDGE_COLOR  && !edge_color_DataArr.some(isNaN)){
       let strokeScale = d3.scaleLinear()
         .domain([0, d3.max(raw, d=>+d[EDGE_COLOR])])
         .range(["WhiteSmoke", "black"])
@@ -236,8 +239,8 @@ const App = () => {
       setData({
         ...data,
         graphData: {
-          nodes: [...data.graph.nodes, ...expandNodes],
-          edges: [...data.graph.edges, ...expandEdges],
+          nodes: [...data.graphData.nodes, ...expandNodes],
+          edges: [...data.graphData.edges, ...expandEdges],
         },
       });
     }
