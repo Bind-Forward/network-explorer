@@ -5,8 +5,8 @@ import {getTime, getRange} from '../Shared/utils'
 import { ModalContext } from "../contexts/ModalContext"
 
 //let systemOffset = new Date().getTimezoneOffset()/60 // detects the system timezone of client
-let systemOffset = 0
-let hoursOffset = 0 // adjusts the timezone to Singapore Standard Time (GMT +8)
+//let systemOffset = 0
+//let hoursOffset = 0 // adjusts the timezone to Singapore Standard Time (GMT +8)
 
 export const brush = d3.brushX()
 
@@ -31,7 +31,7 @@ const Timeline = (props) => {
             .range([height, 0]);
      
   brush.extent([[0, 0], [width, height]])
-  
+
   useEffect(() => {
 
     let svg = d3.select(inputEl.current).append("svg")
@@ -71,7 +71,7 @@ const Timeline = (props) => {
     // add the y Axis
     svg.append("g")
         .attr('class', 'y-axis')
-    
+
   }, [])
 
   useEffect(() => {

@@ -1,17 +1,18 @@
 import React, {useState, useEffect, createRef, useContext} from 'react';
-import Graphin, { Utils } from '@antv/graphin';
+import Graphin from '@antv/graphin';
 import { Toolbar, Legend } from '@antv/graphin-components';
-import Timeline, {brush} from './components/Timeline/Timeline';
-import FormBar from './components/Form/FormBar';
 import * as d3 from 'd3';
 import insertCss from 'insert-css';
-import {getTime, getRandomInt, getRange, onlyUnique, findDegree} from './components/Shared/utils'
+
+import Timeline, {brush} from './components/Timeline/Timeline';
+import FormBar from './components/Form/FormBar';
+import LandingPage from './components/Shared/LandingPage'
+import {getTime, getRange, onlyUnique, findDegree} from './components/Shared/utils'
 import { ModalContext } from "./components/contexts/ModalContext"
 
 import '@antv/graphin/dist/index.css'; 
 import '@antv/graphin-components/dist/index.css'; 
 
-//import raw from "./data/tecnopolis3_tweets.json"
 import "./App.css"
 
 insertCss(`
@@ -49,16 +50,16 @@ const App = () => {
   const [selected, setSelected] = useState([]) // clicked node
   const [data, setData] = useState({
     sessions: [], 
-    graph:{nodes: [], edges:[]}, 
+    graphData:{nodes: [], edges:[]}, 
     degreeData: [], 
     accessors: {widthAccessor: () => 1, strokeAccessor: () => 'grey'}
   }) // graph is re-rendered each time setData is executed
   const graphinRef = createRef(null);
 
-  let { raw, SOURCE, TARGET, EDGE_COLOR, EDGE_WIDTH, TOOLTIP_TITLE, TOOLTIP_DESCRIPTION } = modalState
-  const { sessions, graph, degreeData, accessors } = data
+  let { raw, SOURCE, TARGET, DATE, EDGE_COLOR, EDGE_WIDTH, TOOLTIP_TITLE, TOOLTIP_DESCRIPTION } = modalState
+  const { sessions, graphData, degreeData, accessors } = data
   const {widthAccessor, strokeAccessor} = accessors
-
+  //console.log(modalState, data)
   // helper function to reset graph to original state and style
   const clearAllStats = (graph, accessors) => {
 
@@ -113,7 +114,7 @@ const App = () => {
     graph.setAutoPaint(true);
   }
 
-  // render graph when form is submitted
+  // render graph after data upload
   useEffect(() => {
 
     raw.forEach(d=>{
@@ -122,7 +123,7 @@ const App = () => {
     })
 
     let widthAccessor, strokeAccessor 
-    if(EDGE_WIDTH !== ""){
+    if(EDGE_WIDTH){
       let widthScale = d3.scaleLinear()
         .domain([0, d3.max(raw, d=>+d[EDGE_WIDTH])])
         .range([1, 10])
@@ -133,7 +134,7 @@ const App = () => {
       widthAccessor = (d) => 1
     }
 
-    if(EDGE_COLOR !== ""){
+    if(EDGE_COLOR){
       let strokeScale = d3.scaleLinear()
         .domain([0, d3.max(raw, d=>+d[EDGE_COLOR])])
         .range(["WhiteSmoke", "black"])
@@ -143,15 +144,11 @@ const App = () => {
       strokeAccessor = (d) => 'grey'
     }
 
-    if(TOOLTIP_TITLE !== ""){
-      TOOLTIP_TITLE = "id"
-    }
-
     let accessors = {widthAccessor, strokeAccessor}
     let degreeData = findDegree(raw)
-    let graphData = transformDataToGraph(raw, degreeData, accessors)
 
-    setData({sessions: raw, graph: graphData, degreeData, accessors})
+    let graphData = transformDataToGraph(raw, degreeData, accessors)
+    setData({...data, sessions: raw, graphData, degreeData, accessors})
 
     // modify graph element style by registering a click/mouseenter/mouseleave event
     const { graph } = graphinRef.current;
@@ -159,9 +156,10 @@ const App = () => {
     graph.on("node:mouseenter", (e) => onMouseEnter(e, graph, accessors));
     graph.on("node:mouseleave", () => clearAllStats(graph, accessors));
     graph.on("canvas:click", () => clearAllStats(graph, accessors));
+    graph.on("node:click", (e) => setSelected(e.item._cfg.id));
     //graph.on("wheelzoom", () => console.log(graph.getZoom()));
 
-  }, [raw]);
+  }, [modalState]);
 
   // modify graph element style through timeline bar chart brushing event
   useEffect(() => {
@@ -171,7 +169,7 @@ const App = () => {
     graph.on("node:mouseenter", () => {}); // disable node mouseover when brushing is in effect
     graph.on("node:mouseleave", () => {});
 
-    const { nodes, edges } = data.graph // current graph state (taking into account filters, if any)
+    const { nodes, edges } = graphData // current graph state (taking into account filters, if any)
     let dataNodes = nodes
     let dataEdges = edges
 
@@ -221,7 +219,7 @@ const App = () => {
 
     const { graph } = graphinRef.current;
 
-    let newData = filterByDevices([parseInt(selected)], raw, filters.dates) 
+    let newData = filterByDevices([selected], raw, filters.dates) 
     let expandData = transformDataToGraph(newData, degreeData, accessors)
 
     // remove nodes and edges that already exist on graph
@@ -237,7 +235,7 @@ const App = () => {
     if(expandNodes.length > 0 | expandEdges.length > 0){
       setData({
         ...data,
-        graph: {
+        graphData: {
           nodes: [...data.graph.nodes, ...expandNodes],
           edges: [...data.graph.edges, ...expandEdges],
         },
@@ -253,20 +251,20 @@ const App = () => {
 
     let newData = []
     if(device && device !== 'All'){
-      newData = filterByDevices([parseInt(device)], raw, dates) // only render edges one hop away from searched node
+      newData = filterByDevices([device], raw, dates) // only render edges one hop away from searched node
       //console.log(newData)
       // use filtered results to find connections for the next hop step
       let nodeIds = []
-      let n1s = newData.map(d=>parseInt(d.source))
-      let n1t = newData.map(d=>parseInt(d.target))
+      let n1s = newData.map(d=>d.source)
+      let n1t = newData.map(d=>d.target)
       nodeIds.push(n1s)
       nodeIds.push(n1t)
-      nodeIds.push(parseInt(device))
+      nodeIds.push(device)
       if(degree > 1){
         newData = filterByDevices(nodeIds.flat(), raw, dates) // render edges 2 hop away from searched node
         //console.log(newData)
-        let n2s = newData.map(d=>parseInt(d.source))
-        let n2t = newData.map(d=>parseInt(d.target))
+        let n2s = newData.map(d=>d.source)
+        let n2t = newData.map(d=>d.target)
         nodeIds.push(n2s)
         nodeIds.push(n2t)
         if(degree > 2){
@@ -279,8 +277,9 @@ const App = () => {
     } else {
       newData = sessions
     }
+
     let graphData = transformDataToGraph(newData, degreeData, accessors)
-    setData({...data, sessions: newData, graph: graphData})
+    setData({...data, sessions: newData, graphData})
 
   }, [filters]);
 
@@ -324,7 +323,6 @@ const App = () => {
     toolbarCfgNew[3].name = 'Reset'
     toolbarCfgNew[3].action = () => {
 
-      const { graph } = graphinRef.current;
       setFilters({device: "All", dates: [], degree: 1})
       d3.selectAll('.brush').call(brush.move, null);
 
@@ -339,7 +337,7 @@ const App = () => {
   const handleLegend = (checked, options, LegendProps) => {
     const { apis } = LegendProps;
 
-    const { nodes, edges } = data.graph
+    const { nodes } = graphData
 
     const optionsMap = options.reduce((acc, curr) => {
       acc[curr.value] = curr;
@@ -363,7 +361,7 @@ const App = () => {
     let ids_1 = sessions.map(d=>d.source)
     let ids_2 = sessions.map(d=>d.target)
     let nodeIDs = ids_1.concat(ids_2).filter(onlyUnique)
-    nodeIDs.map((d,i) => {
+    nodeIDs.forEach((d,i) => {
       if(d){
         let degree = degreeData.find(el=>el.key === d.toString()).value
         nodes.push({
@@ -379,19 +377,19 @@ const App = () => {
     })
     
     let edges = []
-    sessions.map((d,i) => {
+    sessions.forEach((d,i) => {
       edges.push({
         id : d.source + '-' + d.target + '-' + i,
         source : d.source.toString(),
         target : d.target.toString(),
         data : {
-          index: d.id, 
+          index: d.index, 
           date: getTime(d.created_at), 
           distance: d.distance, 
           duration: d.duration,
           content: {
-            title: d[TOOLTIP_TITLE], 
-            description: d[TOOLTIP_DESCRIPTION],
+            title: TOOLTIP_TITLE ? d[TOOLTIP_TITLE] : d["index"], 
+            description: {label: TOOLTIP_DESCRIPTION, value: d[TOOLTIP_DESCRIPTION]},
             edgeColor: {label: EDGE_COLOR, value: d[EDGE_COLOR]},
             edgeWidth: {label: EDGE_WIDTH, value: d[EDGE_WIDTH]}
           }
@@ -406,9 +404,10 @@ const App = () => {
 
   return (
     <div className="App">
-      <FormBar updateGraph={updateGraph} reset={filters.device === 'All'}/>
+      { raw.length === 0 &&  <LandingPage/> }
+      { raw.length > 0 &&  <FormBar updateGraph={updateGraph} reset={filters.device === 'All'}/> }
         <Graphin 
-          data={data.graph} 
+          data={graphData} 
           layout={{
             name: 'force',
             options: {
@@ -447,15 +446,14 @@ const App = () => {
                   formatText(model) {
                     let content = model.data.content
                     let text = `<h3>${content.title}</h3>`
-                    if(content.edgeColor.label !== ""){
+                    if(content.edgeColor.label){
                       text += `<p><span class='label'>${content.edgeColor.label}: </span>${content.edgeColor.value}</p>`
-                      console.log('hi', text)
                     }
-                    if(content.edgeWidth.label !== ""){
+                    if(content.edgeWidth.label){
                       text += `<p><span class='label'>${content.edgeWidth.label}: </span>${content.edgeWidth.value}</p>`
                     }   
-                    if(TOOLTIP_DESCRIPTION !== ""){
-                      text += `<p>${content.description}</p>`
+                    if(content.description.label){
+                      text += `<p>${content.description.value}</p>`
                     }   
                     return text;
                   }
@@ -468,7 +466,7 @@ const App = () => {
         { raw.length > 0 && <Toolbar render={renderToolbar}/> }
         { raw.length > 0 && <Legend options={legendOptions} onChange={handleLegend} /> }
       </Graphin>
-      { raw.length > 0 && <Timeline data={data.sessions} findElementsToHighlight={findElementsToHighlight}/> }
+      { DATE && <Timeline data={sessions} findElementsToHighlight={findElementsToHighlight}/> }
     </div>
   );
 

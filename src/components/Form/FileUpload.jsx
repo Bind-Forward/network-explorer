@@ -1,6 +1,5 @@
-import React, { useState, useContext } from 'react';
+import React from 'react';
 import { Button, message, Upload } from 'antd';
-import { ModalContext } from "../contexts/ModalContext"
 
 function csvJSON(csv){
 
@@ -30,17 +29,17 @@ function csvJSON(csv){
   return JSON.stringify(result); 
 }
 
+const dummyRequest = ({ file, onSuccess }) => {
+  setTimeout(() => {
+    onSuccess("ok");
+  }, 0);
+};
+  
 const FileUpload = (props) => {
 
-  const { modalState, setModal } = useContext(ModalContext)
   const { updateData } = props
 
   const uploadProps = {
-    name: 'file',
-    action: '//jsonplaceholder.typicode.com/posts/',
-    headers: {
-      authorization: 'authorization-text',
-    },
     onChange(info) {
       if (info.file.status !== 'uploading') {
          let reader = new FileReader();
@@ -66,7 +65,7 @@ const FileUpload = (props) => {
 
   return (
     <>
-      <Upload {...uploadProps}>
+      <Upload {...uploadProps} customRequest={dummyRequest}>
         <Button>
            Select File
         </Button>
