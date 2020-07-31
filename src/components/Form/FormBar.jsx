@@ -11,15 +11,20 @@ const { Option } = Select;
 
 const FormBar = (props) => {
 
-  const [formbar] = Form.useForm();
   const [form, setForm] = useState({dates: [], device: "All", degree: 1})
   const { modalState } = useContext(ModalContext)
   const { updateGraph, reset } = props
+  const formRef = React.createRef();
 
   useEffect(() => {
     if(reset){ 
-      //formbar.resetFields() // does not seem to reset form values...
       setForm({dates: [], device: "All", degree: 1}) // ensure degree dropdown is disabled upon reset
+      formRef.current.setFieldsValue({
+        ENTITY: "",
+        DEGREE: "All",
+        DATE_RANGE: null
+      });
+
     }
   }, [reset])
 
@@ -31,14 +36,14 @@ const FormBar = (props) => {
  
   return (
     <div id="form-bar">
-      <Form form={formbar} layout='inline'>
+      <Form layout='inline' ref={formRef}>
         <FormModal/>
-        <Form.Item label="Entity">
+        <Form.Item label="Entity" name="ENTITY">
           <Input placeholder="Search for an entity" onPressEnter={(e) => {
             setForm({...form, device: e.target.value})
           }} />
         </Form.Item>
-        <Form.Item label="Degree">
+        <Form.Item label="Degree" name="DEGREE">
           <Select
             placeholder="All"
             disabled={form.device === 'All' ? true : false}
@@ -51,13 +56,17 @@ const FormBar = (props) => {
             <Option value={3}>3rd Degree</Option>
           </Select>
         </Form.Item>
-        {modalState.DATE && <RangePicker 
-          allowClear={false}
-          showTime
-          onChange={(value) => {
-            setForm({...form, dates: value})
-          }} 
-        />}
+        {modalState.DATE && 
+          <Form.Item name="DATE_RANGE" label="Date Range">
+            <RangePicker 
+              allowClear={false}
+              showTime
+              onChange={(value) => {
+                setForm({...form, dates: value})
+              }} 
+            />
+          </Form.Item>
+        }
       </Form>
     </div>
   );

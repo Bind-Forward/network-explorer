@@ -67,3 +67,53 @@ export function findDegree(links) {
 
   return linkAllNodes
 }
+
+export function filterDataFromForm(raw, filters){
+
+  const { device, dates, degree } = filters
+
+  let newData = []
+  if(device && device !== 'All'){
+    newData = filterByDevices([device], raw, dates) // only render edges one hop away from searched node
+    //console.log(newData)
+    // use filtered results to find connections for the next hop step
+    let nodeIds = []
+    let n1s = newData.map(d=>d.source)
+    let n1t = newData.map(d=>d.target)
+    nodeIds.push(n1s)
+    nodeIds.push(n1t)
+    nodeIds.push(device)
+    if(degree > 1){
+      newData = filterByDevices(nodeIds.flat(), raw, dates) // render edges 2 hop away from searched node
+      //console.log(newData)
+      let n2s = newData.map(d=>d.source)
+      let n2t = newData.map(d=>d.target)
+      nodeIds.push(n2s)
+      nodeIds.push(n2t)
+      if(degree > 2){
+       newData = filterByDevices(nodeIds.flat(), raw, dates) // render edges 3 hop away from searched node
+       //console.log(newData)          
+      }
+    }
+  } else if(dates.length > 0){
+    newData = filterByDate(dates, raw) // no concept of 'hops' if no node ID is searched for
+  } else {
+    newData = raw
+  }
+  
+  return newData
+
+}
+
+function filterByDate(dates, data) {
+  let datesArr = getRange(dates[0], dates[1], 'hours')
+  return data.filter(d => datesArr.indexOf(getTime(d.epoch)) !== -1)
+}
+
+export function filterByDevices(devices, data, dates) {
+  let newData = data.filter(d=>devices.indexOf(d.source) !== -1 | devices.indexOf(d.target) !== -1)
+  if(dates && dates.length > 0){
+    newData = filterByDate(dates, newData)
+  }  
+  return newData
+}

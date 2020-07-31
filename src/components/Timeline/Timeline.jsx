@@ -2,7 +2,6 @@ import React, { useRef, useEffect, useContext } from 'react';
 import * as d3 from 'd3';
 import moment from 'moment';
 import {getTime, getRange} from '../Shared/utils'
-import { ModalContext } from "../contexts/ModalContext"
 
 //let systemOffset = new Date().getTimezoneOffset()/60 // detects the system timezone of client
 //let systemOffset = 0
@@ -12,9 +11,7 @@ export const brush = d3.brushX()
 
 const Timeline = (props) => {
 
-  const { modalState } = useContext(ModalContext)
   const { data, findElementsToHighlight} = props
-  let { DATE } = modalState
 
   const inputEl = useRef(null);
 
@@ -76,8 +73,13 @@ const Timeline = (props) => {
 
   useEffect(() => {
 
-    update_timeline(data)
+    if(data.length>0){
+      update_timeline(data)
+    }
 
+    d3.select('.brush')
+      .call(brush.on("end", brushended));
+      
   }, [data])
 
   function brushended() {
@@ -104,8 +106,8 @@ const Timeline = (props) => {
   function update_timeline(data) {
 
     data.forEach(function(d) {
-      d.date = getTime(d[DATE])
-      d.epoch = moment(d[DATE]).toDate()
+      d.dateString = getTime(d.epoch)
+      d.date = moment(d.epoch).toDate()
     })
 
     let MAX = d3.max(data, d=>d.epoch)
@@ -116,7 +118,7 @@ const Timeline = (props) => {
     const hours_formatted = hours.map(d => getTime(d))
 
     let dataSum = d3.nest()
-      .key(d=>d.date)
+      .key(d=>d.dateString)
       .rollup(leaves => leaves.length)
       .entries(data)
 
@@ -141,7 +143,7 @@ const Timeline = (props) => {
 
     // append the rectangles for the bar chart
     let svg = d3.select(inputEl.current).select(".timeline")
-    let bars = svg.selectAll(".bar").data(timelineData, d=>d.id)
+    let bars = svg.selectAll(".bar").data(timelineData)
 
     bars.exit().remove()
 
@@ -176,8 +178,6 @@ const Timeline = (props) => {
         .ticks(5)
       );
    
-    d3.select('.brush')
-      .call(brush.on("end", brushended));
   }
 
   return (
