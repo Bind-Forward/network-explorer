@@ -2,13 +2,13 @@ import React, { useState, createContext } from "react"
 
 export const initialState = {
   raw: [],
-  SOURCE: "",
-  TARGET: "",
-  EDGE_WIDTH: "",
-  EDGE_COLOR: "",
-  TOOLTIP_TITLE: "",
-  TOOLTIP_DESCRIPTION: "",
-  DATE: ""
+  SOURCE: {column: "", present:false},
+  TARGET: {column: "", present:false},
+  EDGE_WIDTH: {column: "", present:false},
+  EDGE_COLOR: {column: "", present:false},
+  TOOLTIP_TITLE: {column: "", present:false},
+  TOOLTIP_DESCRIPTION: {column: "", present:false},
+  DATE: {column: "", present:false}
 }
 
 export const ModalContext = createContext({
@@ -25,3 +25,4 @@ export function ModalProvider(props) {
     </ModalContext.Provider>
   )
 }
+

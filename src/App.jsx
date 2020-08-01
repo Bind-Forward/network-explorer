@@ -49,7 +49,6 @@ const App = () => {
   const [highlight, setHighlight] = useState({brushedDates: []}) // dates selected upon brushing
   const [selected, setSelected] = useState([]) // clicked node
   const [data, setData] = useState({
-    sessions: [], 
     filteredData: [],
     graphData:{nodes: [], edges:[]}, 
     degreeData: [], 
@@ -58,7 +57,7 @@ const App = () => {
   const graphinRef = createRef(null);
 
   let { raw, SOURCE, TARGET, DATE, EDGE_COLOR, EDGE_WIDTH, TOOLTIP_TITLE, TOOLTIP_DESCRIPTION } = modalState
-  const { sessions, filteredData, graphData, degreeData, accessors } = data
+  const { filteredData, graphData, degreeData, accessors } = data
   const {widthAccessor, strokeAccessor} = accessors
   //console.log(modalState, data)
   // helper function to reset graph to original state and style
@@ -118,31 +117,15 @@ const App = () => {
   // render graph after data upload
   useEffect(() => {
 
-
     if(raw.length > 0){
-      let newData = []
-      raw.forEach((d,i)=>{
-        if(d[SOURCE] && d[TARGET]){
-          newData.push({
-            index: i,
-            source : d[SOURCE].toString(),
-            target : d[TARGET].toString(),
-            edgeWidth: d[EDGE_WIDTH] ? +d[EDGE_WIDTH] : 0,
-            edgeColor: d[EDGE_COLOR] ? +d[EDGE_COLOR] : 0,
-            tooltip_title: d[TOOLTIP_TITLE] ? d[TOOLTIP_TITLE] : "",
-            tooltip_description: d[TOOLTIP_DESCRIPTION] ? d[TOOLTIP_DESCRIPTION] : "",
-            epoch: d[DATE]
-          })
-        }
-      })
 
       let widthAccessor, strokeAccessor 
-      let edge_width_DataArr = newData.map(d=>d.edgeWidth)
-      let edge_color_DataArr = newData.map(d=>d.edgeColor)
+      let edge_width_DataArr = raw.map(d=>d.edgeWidth)
+      let edge_color_DataArr = raw.map(d=>d.edgeColor)
 
-      if(raw[0].hasOwnProperty(EDGE_WIDTH) && !edge_width_DataArr.some(isNaN)){
+      if(EDGE_WIDTH.present && !edge_width_DataArr.some(isNaN)){
         let widthScale = d3.scaleLinear()
-          .domain([0, d3.max(newData, d=>d.edgeWidth)])
+          .domain([0, d3.max(raw, d=>d.edgeWidth)])
           .range([1, 10])
 
         widthAccessor = (d) => widthScale(d.edgeWidth)
@@ -151,9 +134,9 @@ const App = () => {
         widthAccessor = (d) => 1
       }
 
-      if(raw[0].hasOwnProperty(EDGE_COLOR) && !edge_color_DataArr.some(isNaN)){
+      if(EDGE_COLOR.present && !edge_color_DataArr.some(isNaN)){
         let strokeScale = d3.scaleLinear()
-          .domain([0, d3.max(newData, d=>d.edgeColor)])
+          .domain([0, d3.max(raw, d=>d.edgeColor)])
           .range(["WhiteSmoke", "black"])
 
         strokeAccessor = (d) => strokeScale(d.edgeColor)
@@ -162,10 +145,10 @@ const App = () => {
       }
 
       let accessors = {widthAccessor, strokeAccessor}
-      let degreeData = findDegree(newData)
-      let graphData = transformDataToGraph(newData, degreeData, accessors)
+      let degreeData = findDegree(raw)
+      let graphData = transformDataToGraph(raw, degreeData, accessors)
 
-      setData({...data, sessions: newData, filteredData: newData, graphData, degreeData, accessors}) // graph loads on initial render
+      setData({...data, filteredData: raw, graphData, degreeData, accessors}) // graph loads on initial render
 
       // modify graph element style by registering a click/mouseenter/mouseleave event
       const { graph } = graphinRef.current;
@@ -237,7 +220,7 @@ const App = () => {
 
     const { graph } = graphinRef.current;
 
-    let newData = filterByDevices([selected], sessions, filters.dates) 
+    let newData = filterByDevices([selected], raw, filters.dates) 
     let expandData = transformDataToGraph(newData, degreeData, accessors)
 
     // remove nodes and edges that already exist on graph
@@ -269,7 +252,7 @@ const App = () => {
 
     //if(device !== 'All' | dates.length > 0 | degree !== 1){ // stop graph rerendering on initial load with default form settings
 
-      let newData = filterDataFromForm(sessions, filters)
+      let newData = filterDataFromForm(raw, filters)
       let graphData = transformDataToGraph(newData, degreeData, accessors)
 
       setData({...data, filteredData: newData, graphData})
@@ -368,10 +351,10 @@ const App = () => {
           index: d.index, 
           date: getTime(d.epoch), 
           content: {
-            title: TOOLTIP_TITLE ? d.tooltip_title : d.index, 
-            description: {label: TOOLTIP_DESCRIPTION, value: d.tooltip_description},
-            edgeColor: {label: EDGE_COLOR, value: d.edgeColor},
-            edgeWidth: {label: EDGE_WIDTH, value: d.edgeWidth}
+            title: TOOLTIP_TITLE.present ? d.tooltip_title : d.index, 
+            description: {label: TOOLTIP_DESCRIPTION.present ? TOOLTIP_DESCRIPTION.column : null, value: d.tooltip_description},
+            edgeColor: {label: EDGE_COLOR.present ? EDGE_COLOR.column : null, value: d.edgeColor},
+            edgeWidth: {label: EDGE_WIDTH.present ? EDGE_WIDTH.column : null, value: d.edgeWidth}
           }
         },
         style : {line: {width: widthAccessor(d), color: strokeAccessor(d)}}
@@ -446,7 +429,7 @@ const App = () => {
         { raw.length > 0 && <Toolbar render={renderToolbar}/> }
         { raw.length > 0 && <Legend options={legendOptions} onChange={handleLegend} /> }
       </Graphin>
-      { (raw.length > 0 && raw[0].hasOwnProperty(DATE)) && <Timeline data={filteredData} findElementsToHighlight={findElementsToHighlight}/> }
+      { (raw.length > 0 && DATE.present) && <Timeline data={filteredData} findElementsToHighlight={findElementsToHighlight}/> }
     </div>
   );
 

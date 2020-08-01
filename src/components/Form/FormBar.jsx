@@ -53,10 +53,10 @@ const FormBar = (props) => {
           >  
             <Option value={1}>1st Degree</Option>
             <Option value={2}>2nd Degree</Option>
-            <Option value={3}>3rd Degree</Option>
+            <Option valueå={3}>3rd Degree</Option>
           </Select>
         </Form.Item>
-        {modalState.DATE && 
+        {modalState.DATE.present && 
           <Form.Item name="DATE_RANGE" label="Date Range">
             <RangePicker 
               allowClear={false}

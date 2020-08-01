@@ -32,18 +32,42 @@ const FormModal = (props) => {
   const onFinish = values => {
     //console.log({raw: state.data, ...values})
     let newData = []
+    let raw = state.data
+    raw.forEach((d,i)=>{
+      if(d[values.SOURCE] && d[values.TARGET]){
+        newData.push({
+          index: i,
+          source : d[values.SOURCE].toString(),
+          target : d[values.TARGET].toString(),
+          edgeWidth: d[values.EDGE_WIDTH] ? +d[values.EDGE_WIDTH] : 0,
+          edgeColor: d[values.EDGE_COLOR] ? +d[values.EDGE_COLOR] : 0,
+          tooltip_title: d[values.TOOLTIP_TITLE] ? d[values.TOOLTIP_TITLE] : "",
+          tooltip_description: d[values.TOOLTIP_DESCRIPTION] ? d[values.TOOLTIP_DESCRIPTION] : "",
+          epoch: d[values.DATE]
+        })
+      }
+    })
+
     if(values.ENTITY || values.DATE_RANGE || values.DEGREE){
-      const filters = {device: values.ENTITY, dates: values.DATE_RANGE, degree: values.DEGREE}
-      newData  = filterDataFromForm(state.data, filters)
-    } else {
-      newData = state.data
-    }
+      const filters = {device: values.ENTITY.toString(), dates: values.DATE_RANGE, degree: values.DEGREE}
+      newData  = filterDataFromForm(newData, filters)
+    } 
+
     let ids_1 = newData.map(d=>d)
     let ids_2 = newData.map(d=>d)
     let nodeIDs = ids_1.concat(ids_2).filter(onlyUnique)
 
     if((nodeIDs.length < 300 && newData.length < 300) | state.counter === 1){
-      setModal({raw: newData, ...values})
+      setModal({
+        raw: newData,
+        SOURCE: {column: values.SOURCE, present: true},
+        TARGET: {column: values.TARGET, present: true},
+        EDGE_WIDTH: {column: values.EDGE_WIDTH, present: findAttr(raw, values.EDGE_WIDTH)},
+        EDGE_COLOR: {column: values.EDGE_COLOR, present: findAttr(raw, values.EDGE_COLOR)},
+        TOOLTIP_TITLE: {column: values.TOOLTIP_TITLE, present: findAttr(raw, values.TOOLTIP_TITLE)},
+        TOOLTIP_DESCRIPTION: {column: values.TOOLTIP_DESCRIPTION, present: findAttr(raw, values.TOOLTIP_DESCRIPTION)},
+        DATE: {column: values.DATE, present: findAttr(raw, values.DATE)}       
+      })
       setState({
         ...state,
         visible: false,
@@ -59,6 +83,10 @@ const FormModal = (props) => {
       });
     }
   };
+
+  function findAttr(data, col){
+    return data.some(item=> item.hasOwnProperty(col))
+  }
 
   const handleCancel = e => {
     setState({
