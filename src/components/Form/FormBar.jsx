@@ -11,28 +11,34 @@ const { Option } = Select;
 
 const FormBar = (props) => {
 
-  const [form, setForm] = useState({dates: [], device: "All", degree: 1})
   const { modalState } = useContext(ModalContext)
+  const [form, setForm] = useState({dates: modalState.DATE_RANGE, entity: modalState.ENTITY, degree: modalState.DEGREE})
   const { updateGraph, reset } = props
   const formRef = React.createRef();
 
   useEffect(() => {
     if(reset){ 
-      setForm({dates: [], device: "All", degree: 1}) // ensure degree dropdown is disabled upon reset
       formRef.current.setFieldsValue({
         ENTITY: "",
         DEGREE: "All",
         DATE_RANGE: null
       });
-
     }
   }, [reset])
 
   useEffect(() => {
-
+    console.log(form)
     updateGraph(form)
-
+    formRef.current.setFieldsValue({
+      ENTITY: form.entity,
+      DEGREE: form.degree,
+      DATE_RANGE: form.dates
+    });
   }, [form])
+ 
+  useEffect(() => {
+    setForm({dates: modalState.DATE_RANGE, entity: modalState.ENTITY, degree: modalState.DEGREE})
+  }, [modalState])
  
   return (
     <div id="form-bar">
@@ -40,20 +46,20 @@ const FormBar = (props) => {
         <FormModal/>
         <Form.Item label="Entity" name="ENTITY">
           <Input placeholder="Search for an entity" onPressEnter={(e) => {
-            setForm({...form, device: e.target.value})
+            setForm({...form, entity: e.target.value})
           }} />
         </Form.Item>
         <Form.Item label="Degree" name="DEGREE">
           <Select
             placeholder="All"
-            disabled={form.device === 'All' ? true : false}
+            disabled={(form.entity === 'All' | reset) ? true : false}
             onChange={(value) => {
               setForm({...form, degree: value})
             }}
           >  
             <Option value={1}>1st Degree</Option>
             <Option value={2}>2nd Degree</Option>
-            <Option valueå={3}>3rd Degree</Option>
+            <Option value={3}>3rd Degree</Option>
           </Select>
         </Form.Item>
         {modalState.DATE.present && 

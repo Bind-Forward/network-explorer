@@ -8,7 +8,10 @@ export const initialState = {
   EDGE_COLOR: {column: "", present:false},
   TOOLTIP_TITLE: {column: "", present:false},
   TOOLTIP_DESCRIPTION: {column: "", present:false},
-  DATE: {column: "", present:false}
+  DATE: {column: "", present:false},
+  ENTITY: "All",
+  DEGREE: "All",
+  DATE_RANGE: []
 }
 
 export const ModalContext = createContext({

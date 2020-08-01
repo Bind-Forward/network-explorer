@@ -68,7 +68,7 @@ const FileUpload = (props) => {
     <>
       <Upload {...uploadProps} customRequest={dummyRequest}>
         <Button>
-           Select File
+           <UploadOutlined/> Select File
         </Button>
       </Upload>
     </>

@@ -70,19 +70,17 @@ export function findDegree(links) {
 
 export function filterDataFromForm(raw, filters){
 
-  const { device, dates, degree } = filters
-
+  const { entity, dates, degree } = filters
   let newData = []
-  if(device && device !== 'All'){
-    newData = filterByDevices([device], raw, dates) // only render edges one hop away from searched node
-    //console.log(newData)
+  if(entity && entity !== 'All'){
+    newData = filterByDevices([entity], raw, dates) // only render edges one hop away from searched node
     // use filtered results to find connections for the next hop step
     let nodeIds = []
     let n1s = newData.map(d=>d.source)
     let n1t = newData.map(d=>d.target)
     nodeIds.push(n1s)
     nodeIds.push(n1t)
-    nodeIds.push(device)
+    nodeIds.push(entity)
     if(degree > 1){
       newData = filterByDevices(nodeIds.flat(), raw, dates) // render edges 2 hop away from searched node
       //console.log(newData)

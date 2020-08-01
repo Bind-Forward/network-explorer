@@ -30,7 +30,6 @@ const FormModal = (props) => {
   };
 
   const onFinish = values => {
-    //console.log({raw: state.data, ...values})
     let newData = []
     let raw = state.data
     raw.forEach((d,i)=>{
@@ -48,15 +47,15 @@ const FormModal = (props) => {
       }
     })
 
-    if(values.ENTITY || values.DATE_RANGE || values.DEGREE){
-      const filters = {device: values.ENTITY.toString(), dates: values.DATE_RANGE, degree: values.DEGREE}
-      newData  = filterDataFromForm(newData, filters)
-    } 
+    //if(values.ENTITY || values.DATE_RANGE || values.DEGREE){
+      //const filters = {device: values.ENTITY.toString(), dates: values.DATE_RANGE ? values.DATE_RANGE : [], degree: values.DEGREE}
+      //newData  = filterDataFromForm(newData, filters)
+    //} 
 
-    let ids_1 = newData.map(d=>d)
-    let ids_2 = newData.map(d=>d)
+    let ids_1 = newData.map(d=>d.index)
+    let ids_2 = newData.map(d=>d.index)
     let nodeIDs = ids_1.concat(ids_2).filter(onlyUnique)
-
+    
     if((nodeIDs.length < 300 && newData.length < 300) | state.counter === 1){
       setModal({
         raw: newData,
@@ -66,7 +65,10 @@ const FormModal = (props) => {
         EDGE_COLOR: {column: values.EDGE_COLOR, present: findAttr(raw, values.EDGE_COLOR)},
         TOOLTIP_TITLE: {column: values.TOOLTIP_TITLE, present: findAttr(raw, values.TOOLTIP_TITLE)},
         TOOLTIP_DESCRIPTION: {column: values.TOOLTIP_DESCRIPTION, present: findAttr(raw, values.TOOLTIP_DESCRIPTION)},
-        DATE: {column: values.DATE, present: findAttr(raw, values.DATE)}       
+        DATE: {column: values.DATE, present: findAttr(raw, values.DATE)},
+        ENTITY: values.ENTITY ? values.ENTITY : "All",
+        DEGREE: values.DEGREE ? values.DEGREE : "All",
+        DATE_RANGE: values.DATE_RANGE ? values.DATE_RANGE : []    
       })
       setState({
         ...state,
@@ -155,7 +157,7 @@ const FormModal = (props) => {
         { state.warning && 
           <Row>
            <Alert message="Warning" 
-             description="There is either more than 300 nodes or edges to load the graph with. You may still proceed with rendering the graph but performance my be compromised." 
+             description="There is either more than 300 nodes or edges to load the graph with. You may still proceed with rendering the graph or filter the data to reduce the number of graph elements." 
              type="warning" 
              showIcon closable />
           </Row>

@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useContext } from 'react';
+import React, { useRef, useEffect } from 'react';
 import * as d3 from 'd3';
 import moment from 'moment';
 import {getTime, getRange} from '../Shared/utils'
@@ -79,7 +79,7 @@ const Timeline = (props) => {
 
     d3.select('.brush')
       .call(brush.on("end", brushended));
-      
+
   }, [data])
 
   function brushended() {

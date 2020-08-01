@@ -45,7 +45,7 @@ const legendOptions = [
 const App = () => { 
   
   const { modalState } = useContext(ModalContext)
-  const [filters, setFilters] = useState({device: "All", dates: [], degree: 1}) // form values
+  const [filters, setFilters] = useState({dates: modalState.DATE_RANGE, entity: modalState.ENTITY, degree: modalState.DEGREE, reset: false}) // form values
   const [highlight, setHighlight] = useState({brushedDates: []}) // dates selected upon brushing
   const [selected, setSelected] = useState([]) // clicked node
   const [data, setData] = useState({
@@ -56,10 +56,10 @@ const App = () => {
   }) // graph is re-rendered each time setData is executed
   const graphinRef = createRef(null);
 
-  let { raw, SOURCE, TARGET, DATE, EDGE_COLOR, EDGE_WIDTH, TOOLTIP_TITLE, TOOLTIP_DESCRIPTION } = modalState
+  let { raw, DATE, EDGE_COLOR, EDGE_WIDTH, TOOLTIP_TITLE, TOOLTIP_DESCRIPTION } = modalState
   const { filteredData, graphData, degreeData, accessors } = data
   const {widthAccessor, strokeAccessor} = accessors
-  //console.log(modalState, data)
+
   // helper function to reset graph to original state and style
   const clearAllStats = (graph, accessors) => {
 
@@ -118,7 +118,7 @@ const App = () => {
   useEffect(() => {
 
     if(raw.length > 0){
-
+      //console.log('initial upload')
       let widthAccessor, strokeAccessor 
       let edge_width_DataArr = raw.map(d=>d.edgeWidth)
       let edge_color_DataArr = raw.map(d=>d.edgeColor)
@@ -147,8 +147,8 @@ const App = () => {
       let accessors = {widthAccessor, strokeAccessor}
       let degreeData = findDegree(raw)
       let graphData = transformDataToGraph(raw, degreeData, accessors)
-
       setData({...data, filteredData: raw, graphData, degreeData, accessors}) // graph loads on initial render
+      setFilters({dates: modalState.DATE_RANGE, entity: modalState.ENTITY, degree: modalState.DEGREE, reset: false})
 
       // modify graph element style by registering a click/mouseenter/mouseleave event
       const { graph } = graphinRef.current;
@@ -248,17 +248,14 @@ const App = () => {
   // render new graph based on form values
   useEffect(() => {
 
-    const { device, dates, degree } = filters
-
-    //if(device !== 'All' | dates.length > 0 | degree !== 1){ // stop graph rerendering on initial load with default form settings
-
+    const { entity, dates, degree, reset } = filters
+    if(entity !== 'All' | dates.length > 0 | degree !== 'All' | reset){ // stop graph rerendering on initial load with default form settings
+      //console.log('new form submit')
       let newData = filterDataFromForm(raw, filters)
       let graphData = transformDataToGraph(newData, degreeData, accessors)
-
       setData({...data, filteredData: newData, graphData})
-      
-    //}
-
+    }
+    
   }, [filters]);
 
   // set new date range based on brush
@@ -268,10 +265,12 @@ const App = () => {
 
   // set new filters based on form values
   const updateGraph = (form) => {
-    const { device, dates, degree } = form
+
+    const { entity, dates, degree } = form
     setFilters({
-      ...filters, device, degree, dates: dates.length > 0 ? [dates[0], dates[1]] : []
+      ...filters, entity, degree, dates: dates.length > 0 ? [dates[0], dates[1]] : [], reset: false
     })
+  
     d3.selectAll('.brush').call(brush.move, null) // remove brush each time form values change
 
   }
@@ -288,7 +287,7 @@ const App = () => {
     toolbarCfgNew[3].name = 'Reset'
     toolbarCfgNew[3].action = () => {
 
-      setFilters({device: "All", dates: [], degree: 1})
+      setFilters({dates: [], entity: "All", degree: "All", reset: true})
       d3.selectAll('.brush').call(brush.move, null);
 
     }
@@ -368,7 +367,7 @@ const App = () => {
   return (
     <div className="App">
       { raw.length === 0 &&  <LandingPage/> }
-      { raw.length > 0 &&  <FormBar updateGraph={updateGraph} reset={filters.device === 'All'}/> }
+      { raw.length > 0 &&  <FormBar updateGraph={updateGraph} reset={filters.reset}/> }
         <Graphin 
           data={graphData} 
           layout={{
