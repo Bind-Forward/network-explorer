@@ -1,5 +1,5 @@
 import React, { useState, useContext } from 'react';
-import { Row, Col, Button, Modal, Form, Input, Typography, Tooltip, Select, DatePicker, Alert } from 'antd';
+import { Row, Col, Button, Modal, Form, Input, Typography, Tooltip, Select, DatePicker, Alert, Steps } from 'antd';
 import { InfoCircleOutlined, DownOutlined, UpOutlined } from '@ant-design/icons';
 import FileUpload from './FileUpload';
 import { ModalContext } from "../contexts/ModalContext"
@@ -8,21 +8,34 @@ import test from "../../data/test.json"
 import test1 from "../../data/sample.json"
 import node_test from "../../data/nodes.json"
 
+const { Step } = Steps;
 const { RangePicker } = DatePicker;
 const { Option } = Select;
-
 const { Text } = Typography;
 
 const style = { padding: '0px 4px' };
 
+const steps = [
+  {
+    title: 'Import Data',
+  },
+  {
+    title: 'Styles',
+  },
+  {
+    title: 'Filter Data',
+  }
+];
+
+
 const FormModal = (props) => {
 
-  const [expand, setExpand] = useState(false);
+  const [current, setCurrent] = useState(0);
   const [state, setState] = useState({ visible: false, data: {nodes: [], edges: []}, warning: false, counter: 0 })
   const { setModal } = useContext(ModalContext)
   const [form] = Form.useForm();
   const formRef = React.createRef();
-
+  console.log(current)
   const showModal = () => {
     setState({
       ...state,
@@ -30,8 +43,18 @@ const FormModal = (props) => {
     });
   };
 
-  const onFinish = values => {
+  const next = () => {
+    const currentNew = current + 1;
+    setCurrent(currentNew);
+  }
 
+  const prev = () => {
+    const currentNew = current - 1;
+    setCurrent(currentNew);
+  }
+
+  const onFinish = values => {
+    console.log(values)
     // edges data-processing
     const { nodes, edges } = state.data
 
@@ -158,10 +181,10 @@ const FormModal = (props) => {
         </Button>
       </Form.Item>
       <Modal
-        title="Import Data"
+        title="Load Graph"
         visible={state.visible}
         onCancel={handleCancel}
-        okButtonProps={{form:'myForm', key: 'submit', htmlType: 'submit'}}
+        footer={null}
       >
         <Form
           id='myForm'
@@ -174,246 +197,263 @@ const FormModal = (props) => {
           }}
           onFinish={onFinish}
         >
-        { state.warning && 
-          <Row>
-           <Alert message="Warning" 
-             description="There is either more than 300 nodes or edges to load the graph with. You may still proceed with rendering the graph or filter the data to reduce the number of graph elements." 
-             type="warning" 
-             showIcon closable />
-          </Row>
-        }
+        <>
+          <Steps current={current}>
+            {steps.map(item => (
+              <Step key={item.title} title={item.title} />
+            ))}
+          </Steps>
+          <div className="steps-content">
+            { state.warning && 
+              <Row>
+               <Alert message="Warning" 
+                 description="There is either more than 300 nodes or edges to load the graph with. You may still proceed with rendering the graph or filter the data to reduce the number of graph elements." 
+                 type="warning" 
+                 showIcon closable />
+              </Row>
+            }
 
-          <Form.Item>
-            <Text strong underline>Nodes</Text>
-          </Form.Item>
-          <Row>
-            <Col span={24}>
-              <Form.Item
-                name="title"
-                label="Choose a CSV/JSON file"
-              >
-                <FileUpload updateData={(data) => update({nodes: data, edges: []})}/>
-              </Form.Item> 
-            </Col>
-          </Row>
+              <Row style={{display: current === 0 ? 'block' : 'none'}}> 
+                <Form.Item>
+                  <Text strong underline>Nodes</Text>
+                </Form.Item>
+                <Row>
+                  <Col span={24}>
+                    <Form.Item
+                      name="title"
+                      label="Choose a CSV/JSON file"
+                    >
+                      <FileUpload updateData={(data) => update({nodes: data, edges: []})}/>
+                    </Form.Item> 
+                  </Col>
+                </Row>
 
-          <Form.Item>
-            <Text strong underline>Edges</Text>
-          </Form.Item>
-          <Row>
-            <Col span={24}>
-              <Form.Item
-                name="title"
-                label="Choose a CSV/JSON file"
-              >
-                 <FileUpload updateData={(data) => update({nodes: [], edges: data})}/>
-              </Form.Item> 
-              <Button type="link" htmlType="button" onClick={onFill_1}>
-                  Load nodes & edges (temporal) & Fill form
-                </Button>
-                <Button type="link" htmlType="button" onClick={onFill_2}>
-                  Load edges (non-temporal) only & Fill form
-                </Button>
-            </Col>
-          </Row>
+                <Form.Item>
+                  <Text strong underline>Edges</Text>
+                </Form.Item>
+                <Row>
+                  <Col span={24}>
+                    <Form.Item
+                      name="title"
+                      label="Choose a CSV/JSON file"
+                    >
+                       <FileUpload updateData={(data) => update({nodes: [], edges: data})}/>
+                    </Form.Item> 
+                    <Button type="link" htmlType="button" onClick={onFill_1}>
+                        Load nodes & edges (temporal) & Fill form
+                      </Button>
+                      <Button type="link" htmlType="button" onClick={onFill_2}>
+                        Load edges (non-temporal) only & Fill form
+                      </Button>
+                  </Col>
+                </Row>
 
-          <Form.Item>
-            <Text strong underline>Column Mapping</Text>
-          </Form.Item>
-          <Row>
-            <Col span={12}>
-              <div style={style}>
-              <Form.Item name="ID" label="Entity ID">
-                <Input type="textarea" />
+                <Form.Item>
+                  <Text strong underline>Column Mapping</Text>
+                </Form.Item>
+                <Row>
+                  <Col span={12}>
+                    <div style={style}>
+                    <Form.Item name="ID" label="Entity ID">
+                      <Input type="textarea" />
+                    </Form.Item>
+                    </div>
+                  </Col>
+                  <Col span={12}>
+                    <div style={style}>
+                      <Form.Item name="DATE" label="Date">
+                        <Input type="textarea" suffix={
+                          <Tooltip title="Dates have to be in UNIX timestamps">
+                            <InfoCircleOutlined style={{ color: 'rgba(0,0,0,.45)' }} />
+                          </Tooltip>
+                        }/>
+                      </Form.Item>
+                    </div>
+                  </Col>
+                </Row>
+                <Row>
+                  <Col span={12}>
+                    <div style={style}>
+                      <Form.Item name="SOURCE" label="Source" rules={[
+                        {
+                          required: true,
+                          message: 'Please select column for Source',
+                        },
+                      ]}>
+                        <Input type="textarea" />
+                      </Form.Item>
+                    </div>
+                  </Col>
+                  <Col span={12}>
+                    <div style={style}>
+                    <Form.Item name="TARGET" label="Target" rules={[
+                      {
+                        required: true,
+                        message: 'Please select column for Target',
+                      },
+                    ]}>
+                      <Input type="textarea" />
+                    </Form.Item>
+                    </div>
+                  </Col>
+                </Row>
+
+              </Row>
+              
+            <Row style={{display: current === 1 ? 'block' : 'none'}}> 
+              <Form.Item>
+                <Text strong underline>Styles</Text>
               </Form.Item>
-              </div>
-            </Col>
-            <Col span={12}>
-              <div style={style}>
-                <Form.Item name="DATE" label="Date">
-                  <Input type="textarea" suffix={
-                    <Tooltip title="Dates have to be in UNIX timestamps">
-                      <InfoCircleOutlined style={{ color: 'rgba(0,0,0,.45)' }} />
-                    </Tooltip>
-                  }/>
-                </Form.Item>
-              </div>
-            </Col>
-          </Row>
-          <Row>
-            <Col span={12}>
-              <div style={style}>
-                <Form.Item name="SOURCE" label="Source" rules={[
-                  {
-                    required: true,
-                    message: 'Please select column for Source',
-                  },
-                ]}>
-                  <Input type="textarea" />
-                </Form.Item>
-              </div>
-            </Col>
-            <Col span={12}>
-              <div style={style}>
-              <Form.Item name="TARGET" label="Target" rules={[
-                {
-                  required: true,
-                  message: 'Please select column for Target',
-                },
-              ]}>
-                <Input type="textarea" />
+              <Row>
+                <Col span={12}>
+                  <div style={style}>
+                    <Form.Item name="EDGE_WIDTH" label="Edge Width">
+                      <Input type="textarea" suffix={
+                        <Tooltip title="Only continuous values">
+                          <InfoCircleOutlined style={{ color: 'rgba(0,0,0,.45)' }} />
+                        </Tooltip>
+                      }/>
+                    </Form.Item>
+                  </div>
+                </Col>
+                <Col span={12}>
+                  <div style={style}>
+                    <Form.Item name="EDGE_COLOR" label="Edge Color">
+                      <Input type="textarea" suffix={
+                        <Tooltip title="Only continuous values">
+                          <InfoCircleOutlined style={{ color: 'rgba(0,0,0,.45)' }} />
+                        </Tooltip>
+                      }/>
+                    </Form.Item>
+                  </div>
+                </Col>
+              </Row>
+              <Row>
+                <Col span={12}>
+                  <div style={style}>
+                    <Form.Item name="NODE_RADIUS" label="Node Radius">
+                      <Input type="textarea" suffix={
+                        <Tooltip title="Only continuous values">
+                          <InfoCircleOutlined style={{ color: 'rgba(0,0,0,.45)' }} />
+                        </Tooltip>
+                      }/>
+                    </Form.Item>
+                  </div>
+                </Col>
+                <Col span={12}>
+                  <div style={style}>
+                    <Form.Item name="NODE_COLOR" label="Node Color">
+                      <Input type="textarea" suffix={
+                        <Tooltip title="Only categorical values">
+                          <InfoCircleOutlined style={{ color: 'rgba(0,0,0,.45)' }} />
+                        </Tooltip>
+                      }/>
+                    </Form.Item>
+                  </div>
+                </Col>
+              </Row>
+
+              <Form.Item>
+                <Text strong underline>Edge Tooltip Content</Text>
               </Form.Item>
-              </div>
-            </Col>
-          </Row>
+              <Row>
+                <Col span={12}>
+                  <div style={style}>
+                    <Form.Item name="EDGE_TOOLTIP_TITLE" label="Title">
+                      <Input type="textarea" />
+                    </Form.Item>
+                  </div>
+                </Col>
+                <Col span={12}>
+                  <div style={style}>
+                    <Form.Item name="EDGE_TOOLTIP_DESCRIPTION" label="Description">
+                      <Input type="textarea" />
+                    </Form.Item>
+                  </div>
+                </Col>
+              </Row>
 
-          <Form.Item>
-            <Text strong underline>Search</Text>
-          </Form.Item>
-          <Row>
-            <Col span={12}>
-              <div style={style}>
-                <Form.Item name="ENTITY" label="Entity">
-                  <Input placeholder="Search for an entity" />
+              <Form.Item>
+                <Text strong underline>Node Tooltip Content</Text>
+              </Form.Item>
+              <Row>
+                <Col span={12}>
+                  <div style={style}>
+                    <Form.Item name="NODE_TOOLTIP_TITLE" label="Title">
+                      <Input type="textarea" />
+                    </Form.Item>
+                  </div>
+                </Col>
+                <Col span={12}>
+                  <div style={style}>
+                    <Form.Item name="NODE_TOOLTIP_DESCRIPTION" label="Description">
+                      <Input type="textarea" />
+                    </Form.Item>
+                  </div>
+                </Col>
+              </Row>
+              </Row>
+             
+              <Row style={{display: current === 2 ? 'block' : 'none'}}> 
+                <Form.Item>
+                  <Text strong underline>Search</Text>
                 </Form.Item>
-              </div>
-            </Col>
-            <Col span={12}>
-              <div style={style}>
-                <Form.Item name="DEGREE" label="Degree">
-                  <Select
-                    placeholder="All"
-                    disabled={form.device === 'All' ? true : false}
-                  >  
-                    <Option value={1}>1st Degree</Option>
-                    <Option value={2}>2nd Degree</Option>
-                    <Option value={3}>3rd Degree</Option>
-                  </Select>
-                </Form.Item>
-              </div>
-            </Col>
-          </Row>
-
-          <Row>
-            <Col span={24}>
-              <div style={style}>
-                <Form.Item name="DATE_RANGE" label="Date Range">
-                  <RangePicker 
-                    allowClear={false}
-                    showTime
-                  />
-                </Form.Item>
-              </div>
-            </Col>
-          </Row>
-       
-           <a
-            style={{
-              fontSize: 12,
-            }}
-            onClick={() => {
-              setExpand(!expand);
-            }}
-          >
-            {expand ? <UpOutlined /> : <DownOutlined />} 
-            {expand ? " Hide Advanced Styles" : " Show Advanced Styles"}
-          </a>
-
-        { expand && 
-          <>
-          <Form.Item>
-            <Text strong underline>Styles</Text>
-          </Form.Item>
-          <Row>
-            <Col span={12}>
-              <div style={style}>
-                <Form.Item name="EDGE_WIDTH" label="Edge Width">
-                  <Input type="textarea" suffix={
-                    <Tooltip title="Only continuous values">
-                      <InfoCircleOutlined style={{ color: 'rgba(0,0,0,.45)' }} />
-                    </Tooltip>
-                  }/>
-                </Form.Item>
-              </div>
-            </Col>
-            <Col span={12}>
-              <div style={style}>
-                <Form.Item name="EDGE_COLOR" label="Edge Color">
-                  <Input type="textarea" suffix={
-                    <Tooltip title="Only continuous values">
-                      <InfoCircleOutlined style={{ color: 'rgba(0,0,0,.45)' }} />
-                    </Tooltip>
-                  }/>
-                </Form.Item>
-              </div>
-            </Col>
-          </Row>
-          <Row>
-            <Col span={12}>
-              <div style={style}>
-                <Form.Item name="NODE_RADIUS" label="Node Radius">
-                  <Input type="textarea" suffix={
-                    <Tooltip title="Only continuous values">
-                      <InfoCircleOutlined style={{ color: 'rgba(0,0,0,.45)' }} />
-                    </Tooltip>
-                  }/>
-                </Form.Item>
-              </div>
-            </Col>
-            <Col span={12}>
-              <div style={style}>
-                <Form.Item name="NODE_COLOR" label="Node Color">
-                  <Input type="textarea" suffix={
-                    <Tooltip title="Only categorical values">
-                      <InfoCircleOutlined style={{ color: 'rgba(0,0,0,.45)' }} />
-                    </Tooltip>
-                  }/>
-                </Form.Item>
-              </div>
-            </Col>
-          </Row>
-
-          <Form.Item>
-            <Text strong underline>Edge Tooltip Content</Text>
-          </Form.Item>
-          <Row>
-            <Col span={12}>
-              <div style={style}>
-                <Form.Item name="EDGE_TOOLTIP_TITLE" label="Title">
-                  <Input type="textarea" />
-                </Form.Item>
-              </div>
-            </Col>
-            <Col span={12}>
-              <div style={style}>
-                <Form.Item name="EDGE_TOOLTIP_DESCRIPTION" label="Description">
-                  <Input type="textarea" />
-                </Form.Item>
-              </div>
-            </Col>
-          </Row>
-
-          <Form.Item>
-            <Text strong underline>Node Tooltip Content</Text>
-          </Form.Item>
-          <Row>
-            <Col span={12}>
-              <div style={style}>
-                <Form.Item name="NODE_TOOLTIP_TITLE" label="Title">
-                  <Input type="textarea" />
-                </Form.Item>
-              </div>
-            </Col>
-            <Col span={12}>
-              <div style={style}>
-                <Form.Item name="NODE_TOOLTIP_DESCRIPTION" label="Description">
-                  <Input type="textarea" />
-                </Form.Item>
-              </div>
-            </Col>
-          </Row>
-          </>
-        }
+                <Row>
+                  <Col span={12}>
+                    <div style={style}>
+                      <Form.Item name="ENTITY" label="Entity">
+                        <Input placeholder="Search for an entity" />
+                      </Form.Item>
+                    </div>
+                  </Col>
+                  <Col span={12}>
+                    <div style={style}>
+                      <Form.Item name="DEGREE" label="Degree">
+                        <Select
+                          placeholder="All"
+                          disabled={form.device === 'All' ? true : false}
+                        >  
+                          <Option value={1}>1st Degree</Option>
+                          <Option value={2}>2nd Degree</Option>
+                          <Option value={3}>3rd Degree</Option>
+                        </Select>
+                      </Form.Item>
+                    </div>
+                  </Col>
+                </Row>
+                <Row>
+                  <Col span={24}>
+                    <div style={style}>
+                      <Form.Item name="DATE_RANGE" label="Date Range">
+                        <RangePicker 
+                          allowClear={false}
+                          showTime
+                        />
+                      </Form.Item>
+                    </div>
+                  </Col>
+                </Row>
+              </Row>
+                  
+          </div>
+          <div className="steps-action">
+            {current < steps.length - 1 && (
+              <Button type="primary" onClick={next}>
+                Next
+              </Button>
+            )}
+            {current === steps.length - 1 && (
+              <Button type="primary" form="myForm" key="submit" htmlType="submit">
+                Done
+              </Button>
+            )}
+            {current > 0 && (
+              <Button style={{ margin: '0 8px' }} onClick={prev}>
+                Previous
+              </Button>
+            )}
+          </div>
+        </>
 
         </Form>
       </Modal>
