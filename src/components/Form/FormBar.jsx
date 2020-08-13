@@ -27,7 +27,6 @@ const FormBar = (props) => {
   }, [reset])
 
   useEffect(() => {
-    console.log(form)
     updateGraph(form)
     formRef.current.setFieldsValue({
       ENTITY: form.entity,

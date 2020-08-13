@@ -4,8 +4,8 @@ import FormModal from '../Form/FormModal';
 
 const { Title } = Typography;
 
-const LandingPage = (props) => {
-  
+const LandingPage = () => {
+
   return (
     <>
       <Row type="flex" justify="center" align="middle" style={{minHeight: '100vh'}}>

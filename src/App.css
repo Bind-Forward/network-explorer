@@ -2,6 +2,7 @@
   text-align: center;
   width: 100vw;
   height: 100vh;
+  position: relative;
 }
 
 .App-header {
@@ -15,6 +16,11 @@
   color: white;
 }
 
+p {
+  margin: 0px;
+  font-size: 9px;
+}
+
 .App-link {
   color: #61dafb;
 }
@@ -23,6 +29,38 @@
   height: 70%;
 }
 
+.graphin-core {
+  height: 85%;
+
+}
+.graphin-components {
+  display: flex;
+  height: 15%;
+}
+
+.graphin-components-legend {
+  width: 25%;
+}
+
+#legend-edge-color{
+  width: 25%;
+}
+
 .label {
   font-weight: bold;
+}
+
+.LoadingPage {
+  position: absolute;
+  top: 70px;
+  left: 0px;
+  background-color: white;
+  opacity: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100vw;
+  height: 75vh;
+  visibility: visible;
+  z-index: 2;
 }
