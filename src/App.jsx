@@ -209,7 +209,6 @@ const App = () => {
       })
 
       let legendOptions = {node_color: legend_node_color, edge_color: legend_edge_color, node_color_label: NODE_COLOR.column, edge_color_label: EDGE_COLOR.column,}
-      console.log(legendOptions)
       let accessors = {widthAccessor, strokeAccessor, radiusAccessor, colorAccessor}
       let degreeData = findDegree(edges)
       let graphData = transformDataToGraph(raw, degreeData, accessors)
@@ -217,10 +216,10 @@ const App = () => {
       setFilters({dates: modalState.DATE_RANGE, entity: modalState.ENTITY, degree: modalState.DEGREE, reset: false})
 
       // modify graph element style by registering a click/mouseenter/mouseleave event
-      const { graph } = graphinRef.current;
-      graph.on('beforelayout', function() {
-        setLoading(true)
-      });
+      //const { graph } = graphinRef.current;
+      //graph.on('beforelayout', function() {
+        //setLoading(true)
+      //});
       // graph.on('afterlayout', function() {
       //   setLoading(false)
       // });
@@ -240,10 +239,10 @@ const App = () => {
       // };
     }
 
-    let delay = (edges.length >= 300 | nodes.length >= 300) ? 10000 : 2000
-    setTimeout(function(){
-      setLoading(false)
-    }, delay)
+    //let delay = (edges.length >= 300 | nodes.length >= 300) ? 10000 : 2000
+    //setTimeout(function(){
+      //setLoading(false)
+    //}, delay)
 
   }, [modalState]);
 

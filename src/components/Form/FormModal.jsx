@@ -30,12 +30,13 @@ const steps = [
 
 const FormModal = (props) => {
 
+  const [expand, setExpand] = useState(false)
   const [current, setCurrent] = useState(0);
   const [state, setState] = useState({ visible: false, data: {nodes: [], edges: []}, warning: false, counter: 0 })
   const { setModal } = useContext(ModalContext)
   const [form] = Form.useForm();
   const formRef = React.createRef();
-  console.log(current)
+
   const showModal = () => {
     setState({
       ...state,
@@ -54,76 +55,110 @@ const FormModal = (props) => {
   }
 
   const onFinish = values => {
-    console.log(values)
-    // edges data-processing
-    const { nodes, edges } = state.data
 
-    let newEdges = []
-    edges.forEach((d,i)=>{
-      if(d[values.SOURCE] && d[values.TARGET]){
-        newEdges.push({
-          index: i,
-          source : d[values.SOURCE].toString(),
-          target : d[values.TARGET].toString(),
-          edgeWidth: d[values.EDGE_WIDTH] ? +d[values.EDGE_WIDTH] : 0,
-          edgeColor: d[values.EDGE_COLOR] ? +d[values.EDGE_COLOR] : 0,
-          tooltip_title: d[values.EDGE_TOOLTIP_TITLE] ? d[values.EDGE_TOOLTIP_TITLE] : "",
-          tooltip_description: d[values.EDGE_TOOLTIP_DESCRIPTION] ? d[values.EDGE_TOOLTIP_DESCRIPTION] : "",
-          epoch: d[values.DATE]
-        })
-      }
-    })
-
-    // nodes data-processing
-    let newNodes = []
-    nodes.forEach((d,i)=>{
-      newNodes.push({
-        index: i,
-        id: d[values.ID].toString(),
-        nodeRadius: d[values.NODE_RADIUS] ? +d[values.NODE_RADIUS] : 0,
-        nodeColor: d[values.NODE_COLOR] ? d[values.NODE_COLOR] : 0,
-        tooltip_title: d[values.NODE_TOOLTIP_TITLE] ? d[values.NODE_TOOLTIP_TITLE] : "",
-        tooltip_description: d[values.NODE_TOOLTIP_DESCRIPTION] ? d[values.NODE_TOOLTIP_DESCRIPTION] : ""
-      })
-    })  
-
-    let ids_1 = newEdges.map(d=>d.index)
-    let ids_2 = newEdges.map(d=>d.index)
-    let nodeIDs = ids_1.concat(ids_2).filter(onlyUnique)
-
-    if((newNodes.length < 300 && newEdges.length < 300) | state.counter === 1){
-      setModal({
-        raw: {nodes: newNodes, edges: newEdges},
-        ID: {column: values.ID, present: true},
-        SOURCE: {column: values.SOURCE, present: true},
-        TARGET: {column: values.TARGET, present: true},
-        EDGE_WIDTH: {column: values.EDGE_WIDTH, present: findAttr(edges, values.EDGE_WIDTH)},
-        EDGE_COLOR: {column: values.EDGE_COLOR, present: findAttr(edges, values.EDGE_COLOR)},
-        NODE_RADIUS: {column: values.NODE_RADIUS, present: findAttr(nodes, values.NODE_RADIUS)},
-        NODE_COLOR: {column: values.NODE_COLOR, present: findAttr(nodes, values.NODE_COLOR)},
-        EDGE_TOOLTIP_TITLE: {column: values.EDGE_TOOLTIP_TITLE, present: findAttr(edges, values.EDGE_TOOLTIP_TITLE)},
-        EDGE_TOOLTIP_DESCRIPTION: {column: values.EDGE_TOOLTIP_DESCRIPTION, present: findAttr(edges, values.EDGE_TOOLTIP_DESCRIPTION)},
-        NODE_TOOLTIP_TITLE: {column: values.NODE_TOOLTIP_TITLE, present: findAttr(nodes, values.NODE_TOOLTIP_TITLE)},
-        NODE_TOOLTIP_DESCRIPTION: {column: values.NODE_TOOLTIP_DESCRIPTION, present: findAttr(nodes, values.NODE_TOOLTIP_DESCRIPTION)},
-        DATE: {column: values.DATE, present: findAttr(edges, values.DATE)},
-        ENTITY: values.ENTITY ? values.ENTITY : "All",
-        DEGREE: values.DEGREE ? values.DEGREE : "All",
-        DATE_RANGE: values.DATE_RANGE ? values.DATE_RANGE : []    
-      })
-      setState({
-        ...state,
-        visible: false,
-        warning: false,
-        counter: 0
-      });
-    } else {
-      setState({
-        ...state,
-        visible: true,
-        warning: true,
-        counter: state.counter + 1
-      });
+    let params = {
+      host: values.HOST,
+      user: values.USER,
+      database: values.DATABASE,
+      password: values.PASSWORD,
+      port: values.PORT,
+      entity: values.ENTITY,
+      entities_col: values.SOURCE,
+      date_range: values.DATE_RANGE,
+      date_col: values.DATE,
+      nodes_db_table: values.NODES_DB_TABLE,
+      edges_db_table: values.EDGES_DB_TABLE
     }
+
+    if(values.HOST & values.USER & values.DATABASE & values.PASSWORD & values.PORT){
+      fetch("/data", {
+        method: "POST",
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(params)
+      })
+      .then(response => response.json())
+      .then(data=> {
+        dataProcessing(data)
+      })
+    }
+
+    dataProcessing(state.data)
+
+    function dataProcessing(data){
+      const { nodes, edges } = data
+
+      // edges data-processing
+      let newEdges = []
+      if(edges.length > 0){
+        edges.forEach((d,i)=>{
+          if(d[values.SOURCE] && d[values.TARGET]){
+            newEdges.push({
+              index: i,
+              source : d[values.SOURCE].toString(),
+              target : d[values.TARGET].toString(),
+              edgeWidth: d[values.EDGE_WIDTH] ? +d[values.EDGE_WIDTH] : 0,
+              edgeColor: d[values.EDGE_COLOR] ? +d[values.EDGE_COLOR] : 0,
+              tooltip_title: d[values.EDGE_TOOLTIP_TITLE] ? d[values.EDGE_TOOLTIP_TITLE] : "",
+              tooltip_description: d[values.EDGE_TOOLTIP_DESCRIPTION] ? d[values.EDGE_TOOLTIP_DESCRIPTION] : "",
+              epoch: d[values.DATE]
+            })
+          }
+         })
+      }
+
+      // nodes data-processing
+      let newNodes = []
+      if(nodes.length > 0){
+        nodes.forEach((d,i)=>{
+          newNodes.push({
+            index: i,
+            id: d[values.ID].toString(),
+            nodeRadius: d[values.NODE_RADIUS] ? +d[values.NODE_RADIUS] : 0,
+            nodeColor: d[values.NODE_COLOR] ? d[values.NODE_COLOR] : 0,
+            tooltip_title: d[values.NODE_TOOLTIP_TITLE] ? d[values.NODE_TOOLTIP_TITLE] : "",
+            tooltip_description: d[values.NODE_TOOLTIP_DESCRIPTION] ? d[values.NODE_TOOLTIP_DESCRIPTION] : ""
+          })
+        }) 
+      } 
+
+      if((newNodes.length < 300 && newEdges.length < 300) | state.counter === 1){
+        setModal({
+          raw: {nodes: newNodes, edges: newEdges},
+          ID: {column: values.ID, present: true},
+          SOURCE: {column: values.SOURCE, present: true},
+          TARGET: {column: values.TARGET, present: true},
+          EDGE_WIDTH: {column: values.EDGE_WIDTH, present: findAttr(edges, values.EDGE_WIDTH)},
+          EDGE_COLOR: {column: values.EDGE_COLOR, present: findAttr(edges, values.EDGE_COLOR)},
+          NODE_RADIUS: {column: values.NODE_RADIUS, present: findAttr(nodes, values.NODE_RADIUS)},
+          NODE_COLOR: {column: values.NODE_COLOR, present: findAttr(nodes, values.NODE_COLOR)},
+          EDGE_TOOLTIP_TITLE: {column: values.EDGE_TOOLTIP_TITLE, present: findAttr(edges, values.EDGE_TOOLTIP_TITLE)},
+          EDGE_TOOLTIP_DESCRIPTION: {column: values.EDGE_TOOLTIP_DESCRIPTION, present: findAttr(edges, values.EDGE_TOOLTIP_DESCRIPTION)},
+          NODE_TOOLTIP_TITLE: {column: values.NODE_TOOLTIP_TITLE, present: findAttr(nodes, values.NODE_TOOLTIP_TITLE)},
+          NODE_TOOLTIP_DESCRIPTION: {column: values.NODE_TOOLTIP_DESCRIPTION, present: findAttr(nodes, values.NODE_TOOLTIP_DESCRIPTION)},
+          DATE: {column: values.DATE, present: findAttr(edges, values.DATE)},
+          ENTITY: values.ENTITY ? values.ENTITY : "All",
+          DEGREE: values.DEGREE ? values.DEGREE : "All",
+          DATE_RANGE: values.DATE_RANGE ? values.DATE_RANGE : []
+        })
+        setState({
+          ...state,
+          visible: false,
+          warning: false,
+          counter: 0
+        });
+      } else {
+        setState({
+          ...state,
+          visible: true,
+          warning: true,
+          counter: state.counter + 1
+        });
+      }
+  
+    }
+
   };
 
   function findAttr(data, col){
@@ -213,6 +248,63 @@ const FormModal = (props) => {
               </Row>
             }
 
+            <a
+              style={{
+                fontSize: 12,
+                display: current === 0 ? 'block' : 'none'
+              }}
+              onClick={() => {
+                setExpand(!expand);
+              }}
+            >
+              {expand ? <UpOutlined /> : <DownOutlined />} 
+              {expand ? " Hide" : "Connect to postgresql database"}
+            </a>
+
+            { expand && 
+              <Row style={{display: current === 0 ? 'block' : 'none'}}> 
+                <Row>
+                  <Col span={6}>
+                    <div style={style}>
+                      <Form.Item name="USER" label="User">
+                        <Input type="textarea"/>
+                      </Form.Item>
+                    </div>
+                  </Col>
+                  <Col span={18}>
+                    <div style={style}>
+                      <Form.Item name="HOST" label="Host">
+                        <Input type="textarea"/>
+                      </Form.Item>
+                    </div>
+                  </Col>
+                </Row>
+                <Row>
+                  <Col span={8}>
+                    <div style={style}>
+                      <Form.Item name="DATABASE" label="database">
+                        <Input type="textarea"/>
+                      </Form.Item>
+                    </div>
+                  </Col>
+                  <Col span={10}>
+                    <div style={style}>
+                      <Form.Item name="PASSWORD" label="password">
+                        <Input type="textarea"/>
+                      </Form.Item>
+                    </div>
+                  </Col>
+                  <Col span={6}>
+                    <div style={style}>
+                      <Form.Item name="PORT" label="port">
+                        <Input type="textarea"/>
+                      </Form.Item>
+                    </div>
+                  </Col>
+                </Row>                  
+              </Row>
+            }
+
               <Row style={{display: current === 0 ? 'block' : 'none'}}> 
                 <Form.Item>
                   <Text strong underline>Nodes</Text>
@@ -226,6 +318,13 @@ const FormModal = (props) => {
                       <FileUpload updateData={(data) => update({nodes: data, edges: []})}/>
                     </Form.Item> 
                   </Col>
+                  <Col span={24}>
+                    <div style={style}>
+                    <Form.Item name="NODES_DB_TABLE" label="Database Table">
+                      <Input type="textarea" />
+                    </Form.Item>
+                    </div>
+                  </Col>    
                 </Row>
 
                 <Form.Item>
@@ -239,13 +338,20 @@ const FormModal = (props) => {
                     >
                        <FileUpload updateData={(data) => update({nodes: [], edges: data})}/>
                     </Form.Item> 
-                    <Button type="link" htmlType="button" onClick={onFill_1}>
-                        Load nodes & edges (temporal) & Fill form
-                      </Button>
-                      <Button type="link" htmlType="button" onClick={onFill_2}>
-                        Load edges (non-temporal) only & Fill form
-                      </Button>
                   </Col>
+                  <Col span={24}>
+                    <div style={style}>
+                    <Form.Item name="EDGES_DB_TABLE" label="Database Table">
+                      <Input type="textarea" />
+                    </Form.Item>
+                    </div>
+                  </Col>
+                  <Button type="link" htmlType="button" onClick={onFill_1}>
+                    Load nodes & edges (temporal) & Fill form
+                  </Button>
+                  <Button type="link" htmlType="button" onClick={onFill_2}>
+                    Load edges (non-temporal) only & Fill form
+                  </Button>
                 </Row>
 
                 <Form.Item>

@@ -38,7 +38,7 @@ const FormBar = (props) => {
   useEffect(() => {
     setForm({dates: modalState.DATE_RANGE, entity: modalState.ENTITY, degree: modalState.DEGREE})
   }, [modalState])
- 
+   
   return (
     <div id="form-bar">
       <Form layout='inline' ref={formRef}>
