@@ -2,7 +2,9 @@
 
 ### What is [Network Explorer](http://network-explorer.s3-website-ap-southeast-1.amazonaws.com/)?
 
-It is a graph visualization tool built with React, Graphin and D3. Graphin is based on G6 and React and offers graph analysis ability out of the box. Its purpose is to help users style and render graphs easily without code through a UI by importing a dataset or connecting to a database.
+It is a graph visualization tool built with React, Graphin and D3. [Graphin](https://github.com/antvis/Graphin) is based on G6 and React and offers graph analysis ability out of the box. 
+
+Network Explorer's purpose is to help users style and render graphs easily without code through a UI by importing a dataset or connecting to a database.
 
 ### Demo 1
 ![alt text](https://github.com/dianaow/network-explorer/raw/master/assets/demo1.gif "Demo 1")
@@ -21,10 +23,10 @@ It is a graph visualization tool built with React, Graphin and D3. Graphin is ba
 
 ```npm install
 
-npm run start```
+npm run start
+```
 
 ### Contribute
-Do check out issues for bug reports or feature suggestions. 
+Check out issues for bug reports or feature suggestions. I greatly appreciate you help!
 
-### License
 
