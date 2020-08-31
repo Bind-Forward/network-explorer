@@ -23,3 +23,6 @@ yarn-debug.log*
 yarn-error.log*
 
 /src/data/draft
+
+/assets/demo1.gif
+/assets/demo2.gif

@@ -216,7 +216,7 @@ const App = () => {
       setFilters({dates: modalState.DATE_RANGE, entity: modalState.ENTITY, degree: modalState.DEGREE, reset: false})
 
       // modify graph element style by registering a click/mouseenter/mouseleave event
-      //const { graph } = graphinRef.current;
+      const { graph } = graphinRef.current;
       //graph.on('beforelayout', function() {
         //setLoading(true)
       //});
@@ -229,7 +229,7 @@ const App = () => {
       // graph.on("node:mouseenter", (e) => onMouseEnter(e, graph, accessors, highlight.brushedDates));
       // graph.on("node:mouseleave", () => clearAllStats(graph, accessors));
       // graph.on("canvas:click", () => clearAllStats(graph, accessors));
-      // graph.on("node:click", (e) => setSelected(e.item._cfg.id));
+      graph.on("node:click", (e) => setSelected(e.item._cfg.id));
       // //graph.on("wheelzoom", () => console.log(graph.getZoom()));
       // return () => {
       //   graph.off("node:mouseenter", (e) => onMouseEnter(e, graph, accessors, highlight.brushedDates));
